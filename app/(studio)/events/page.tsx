@@ -42,7 +42,7 @@ function createEmptyEvent(clientId = "", product?: { id: string; recommendedPart
     items: [createEventItem(product?.id ?? "", 20, product?.recommendedParticipantPriceIncVat ?? 100, product?.averageUnitCostExVat ?? 0)],
     eventHours: 4,
     assignments: [],
-    expenses: { paintCost: 120, glazeCost: 90, packagingCost: 80, firingCost: 160, logisticsCost: 0, arrivalCost: 0, deliveryCost: 0 },
+    expenses: { paintCost: 0, glazeCost: 0, packagingCost: 0, firingCost: 0, logisticsCost: 0, arrivalCost: 0, deliveryCost: 0 },
     internalNotes: ""
   };
 }
@@ -276,12 +276,8 @@ export default function EventsPage() {
             </section>
 
             <section className="grid gap-4 md:col-span-2 md:grid-cols-2">
-              <NumberInput label="עלות הגעה" value={form.expenses.arrivalCost ?? 0} onChange={(value) => setForm({ ...form, expenses: { ...form.expenses, arrivalCost: value } })} />
-              <NumberInput label="עלות משלוח" value={form.expenses.deliveryCost ?? 0} onChange={(value) => setForm({ ...form, expenses: { ...form.expenses, deliveryCost: value } })} />
-              <NumberInput label="עלות צבעים" value={form.expenses.paintCost} onChange={(value) => setForm({ ...form, expenses: { ...form.expenses, paintCost: value } })} />
-              <NumberInput label="עלות גלזורה" value={form.expenses.glazeCost} onChange={(value) => setForm({ ...form, expenses: { ...form.expenses, glazeCost: value } })} />
-              <NumberInput label="עלות אריזה" value={form.expenses.packagingCost} onChange={(value) => setForm({ ...form, expenses: { ...form.expenses, packagingCost: value } })} />
-              <NumberInput label="עלות שריפה" value={form.expenses.firingCost} onChange={(value) => setForm({ ...form, expenses: { ...form.expenses, firingCost: value } })} />
+              <NumberInput label="חיוב הגעה ללקוח" value={form.expenses.arrivalCost ?? 0} onChange={(value) => setForm({ ...form, expenses: { ...form.expenses, arrivalCost: value } })} />
+              <NumberInput label="חיוב משלוח ללקוח" value={form.expenses.deliveryCost ?? 0} onChange={(value) => setForm({ ...form, expenses: { ...form.expenses, deliveryCost: value } })} />
             </section>
 
             <label>
@@ -316,7 +312,10 @@ export default function EventsPage() {
         <div className="space-y-4">
           {filteredEvents.map((event) => {
             const client = data.clients.find((item) => item.id === event.clientId);
-            const total = event.items.reduce((sum, item) => sum + item.quantity * item.pricePerItemIncVat, 0);
+            const total =
+              event.items.reduce((sum, item) => sum + item.quantity * item.pricePerItemIncVat, 0) +
+              (event.expenses.arrivalCost ?? 0) +
+              (event.expenses.deliveryCost ?? 0);
             const productNames = event.items.map((line) => data.products.find((item) => item.id === line.productId)?.name ?? "פריט לא נבחר").join(", ");
             const pricing = calculateEventPricing(event, data.employees, data.businessSettings.vatRate);
 

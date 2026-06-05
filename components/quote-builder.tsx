@@ -35,11 +35,11 @@ function makeEmptyQuote(data: StudioData): Quote {
     employeeId: employee?.id ?? "",
     employeeHours: data.businessSettings.defaultEventHours,
     employeeHourlyRate: employee?.hourlyRate ?? 0,
-    paintCost: data.businessSettings.defaultPaintCost,
-    glazeCost: data.businessSettings.defaultGlazeCost,
-    packagingCost: data.businessSettings.defaultPackagingCost,
-    firingCost: data.businessSettings.defaultFiringCost,
-    logisticsCost: data.businessSettings.defaultLogisticsCost,
+    paintCost: 0,
+    glazeCost: 0,
+    packagingCost: 0,
+    firingCost: 0,
+    logisticsCost: 0,
     status: "draft",
     createdAt: new Date().toISOString().slice(0, 10)
   };
@@ -216,11 +216,7 @@ export function QuoteBuilder({
             </label>
             <Field label="שעות עובדת" value={quote.employeeHours} onChange={(value) => setQuote({ ...quote, employeeHours: value })} />
             <Field label="עלות שעת עובדת" value={quote.employeeHourlyRate} onChange={(value) => setQuote({ ...quote, employeeHourlyRate: value })} />
-            <Field label="עלות צבעים" value={quote.paintCost} onChange={(value) => setQuote({ ...quote, paintCost: value })} />
-            <Field label="עלות גלזורה" value={quote.glazeCost} onChange={(value) => setQuote({ ...quote, glazeCost: value })} />
-            <Field label="עלות אריזה" value={quote.packagingCost} onChange={(value) => setQuote({ ...quote, packagingCost: value })} />
-            <Field label="עלות שריפה" value={quote.firingCost} onChange={(value) => setQuote({ ...quote, firingCost: value })} />
-            <Field label="עלות לוגיסטיקה" value={quote.logisticsCost} onChange={(value) => setQuote({ ...quote, logisticsCost: value })} />
+            <Field label="חיוב הגעה/משלוח ללקוח" value={quote.logisticsCost} onChange={(value) => setQuote({ ...quote, logisticsCost: value })} />
           </div>
 
           <div className="mt-6 flex gap-2">
@@ -246,6 +242,7 @@ export function QuoteBuilder({
             <h3 className="text-2xl font-black text-ink">כמה נשאר באמת</h3>
           </div>
           <SummaryRow label="סה״כ ללקוח כולל מע״מ" value={formatCurrency(pricing.revenueIncVat)} />
+          <SummaryRow label="מתוך זה חיוב הגעה/משלוח" value={formatCurrency(quote.logisticsCost)} />
           <SummaryRow label="לפני מע״מ" value={formatCurrency(pricing.revenueExVat)} />
           <SummaryRow label="עלות קרמיקה" value={formatCurrency(pricing.ceramicCost)} />
           <SummaryRow label="עלות עובדת" value={formatCurrency(pricing.employeeCost)} />

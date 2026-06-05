@@ -23,16 +23,11 @@ export default function SettingsPage() {
 
   return (
     <>
-      <PageHeader title="הגדרות" description="כל העלויות שמשמשות כברירת מחדל להצעות ואירועים. קל לשנות בלי להיכנס לקוד." />
+      <PageHeader title="הגדרות" description="הגדרות בסיס לחישובי אירועים והצעות. עלויות סטודיו גלובליות ינוהלו בהמשך בנפרד." />
       <Card>
         <form onSubmit={submitSettings} className="grid gap-4 sm:grid-cols-2">
           <NumberField label="מע״מ" suffix="%" value={Math.round(form.vatRate * 100)} onChange={(value) => setForm({ ...form, vatRate: value / 100 })} />
           <NumberField label="משך אירוע ברירת מחדל" suffix="שעות" value={form.defaultEventHours} onChange={(value) => setForm({ ...form, defaultEventHours: value })} />
-          <NumberField label="עלות צבעים" suffix="₪" value={form.defaultPaintCost} onChange={(value) => setForm({ ...form, defaultPaintCost: value })} />
-          <NumberField label="עלות גלזורה" suffix="₪" value={form.defaultGlazeCost} onChange={(value) => setForm({ ...form, defaultGlazeCost: value })} />
-          <NumberField label="עלות אריזה" suffix="₪" value={form.defaultPackagingCost} onChange={(value) => setForm({ ...form, defaultPackagingCost: value })} />
-          <NumberField label="עלות שריפה" suffix="₪" value={form.defaultFiringCost} onChange={(value) => setForm({ ...form, defaultFiringCost: value })} />
-          <NumberField label="עלות לוגיסטיקה" suffix="₪" value={form.defaultLogisticsCost} onChange={(value) => setForm({ ...form, defaultLogisticsCost: value })} />
           <div className="flex items-end gap-3">
             <ActionButton type="submit">שמירת הגדרות</ActionButton>
             {saved ? <span className="pb-2 font-black text-emerald-700">נשמר</span> : null}

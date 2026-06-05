@@ -48,24 +48,16 @@ export function calculatePricing(input: PricingInput) {
 }
 
 export function calculateEventPricing(event: Event, employees: Employee[], vatRate = businessSettings.vatRate) {
-  const revenueIncVat = event.items.reduce((sum, item) => sum + item.quantity * item.pricePerItemIncVat, 0);
+  const itemsRevenueIncVat = event.items.reduce((sum, item) => sum + item.quantity * item.pricePerItemIncVat, 0);
+  const serviceChargesIncVat = (event.expenses.arrivalCost ?? 0) + (event.expenses.deliveryCost ?? 0);
+  const revenueIncVat = itemsRevenueIncVat + serviceChargesIncVat;
   const revenueExVat = revenueIncVat / (1 + vatRate);
   const ceramicCost = event.items.reduce((sum, item) => sum + item.quantity * item.unitCostExVat, 0);
   const employeeCost = event.assignments.reduce((sum, assignment) => {
     const employee = employees.find((item) => item.id === assignment.employeeId);
     return sum + assignment.eventHours * (employee?.hourlyRate ?? 0);
   }, 0);
-  const directCosts =
-    ceramicCost +
-    employeeCost +
-    event.expenses.paintCost +
-    event.expenses.glazeCost +
-    event.expenses.packagingCost +
-    event.expenses.firingCost +
-    event.expenses.logisticsCost +
-    (event.expenses.arrivalCost ?? 0) +
-    (event.expenses.deliveryCost ?? 0) +
-    (event.expenses.extraExpenses ?? 0);
+  const directCosts = ceramicCost + employeeCost + (event.expenses.extraExpenses ?? 0);
   const grossProfit = revenueExVat - directCosts;
   const margin = revenueExVat > 0 ? (grossProfit / revenueExVat) * 100 : 0;
 
@@ -82,18 +74,12 @@ export function calculateEventPricing(event: Event, employees: Employee[], vatRa
 }
 
 export function calculateQuotePricing(quote: Quote, vatRate = businessSettings.vatRate) {
-  const revenueIncVat = quote.items.reduce((sum, item) => sum + item.quantity * item.pricePerParticipantIncVat, 0);
+  const itemsRevenueIncVat = quote.items.reduce((sum, item) => sum + item.quantity * item.pricePerParticipantIncVat, 0);
+  const revenueIncVat = itemsRevenueIncVat + quote.logisticsCost;
   const revenueExVat = revenueIncVat / (1 + vatRate);
   const ceramicCost = quote.items.reduce((sum, item) => sum + item.quantity * item.unitCostExVat, 0);
   const employeeCost = quote.employeeHours * quote.employeeHourlyRate;
-  const directCosts =
-    ceramicCost +
-    employeeCost +
-    quote.paintCost +
-    quote.glazeCost +
-    quote.packagingCost +
-    quote.firingCost +
-    quote.logisticsCost;
+  const directCosts = ceramicCost + employeeCost;
   const grossProfit = revenueExVat - directCosts;
   const margin = revenueExVat > 0 ? (grossProfit / revenueExVat) * 100 : 0;
 

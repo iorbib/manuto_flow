@@ -208,7 +208,7 @@ export const seedEvents: Event[] = [
       { employeeId: "emp_alona", eventHours: 4 },
       { employeeId: "emp_shaked", eventHours: 4 }
     ],
-    expenses: { paintCost: 120, glazeCost: 90, packagingCost: 80, firingCost: 160, logisticsCost: 220, arrivalCost: 80, deliveryCost: 140 },
+    expenses: { paintCost: 0, glazeCost: 0, packagingCost: 0, firingCost: 0, logisticsCost: 0, arrivalCost: 80, deliveryCost: 140 },
     internalNotes: "להביא דוגמאות מוכנות לצוות מוצר."
   },
   {
@@ -239,7 +239,7 @@ export const seedEvents: Event[] = [
     ],
     eventHours: 4,
     assignments: [{ employeeId: "emp_alona", eventHours: 4 }],
-    expenses: { paintCost: 95, glazeCost: 70, packagingCost: 55, firingCost: 115, logisticsCost: 140, arrivalCost: 60, deliveryCost: 80 },
+    expenses: { paintCost: 0, glazeCost: 0, packagingCost: 0, firingCost: 0, logisticsCost: 0, arrivalCost: 60, deliveryCost: 80 },
     internalNotes: ""
   }
 ];
@@ -261,10 +261,10 @@ export const seedQuotes: Quote[] = [
     employeeId: "emp_alona",
     employeeHours: 4,
     employeeHourlyRate: 0,
-    paintCost: 95,
-    glazeCost: 70,
-    packagingCost: 55,
-    firingCost: 115,
+    paintCost: 0,
+    glazeCost: 0,
+    packagingCost: 0,
+    firingCost: 0,
     logisticsCost: 140,
     status: "sent",
     createdAt: "2026-06-02"

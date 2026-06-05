@@ -97,16 +97,11 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
         </div>
 
         <Card className="h-fit">
-          <h2 className="mb-4 text-2xl font-black text-ink">מה יורד מהאירוע</h2>
+          <h2 className="mb-4 text-2xl font-black text-ink">חישוב האירוע</h2>
           <Cost label="קרמיקה" value={pricing.ceramicCost} />
           <Cost label="עובדות" value={pricing.employeeCost} />
-          <Cost label="צבעים" value={event.expenses.paintCost} />
-          <Cost label="גלזורה" value={event.expenses.glazeCost} />
-          <Cost label="אריזה" value={event.expenses.packagingCost} />
-          <Cost label="שריפה" value={event.expenses.firingCost} />
-          <Cost label="לוגיסטיקה" value={event.expenses.logisticsCost} />
-          <Cost label="הגעה" value={event.expenses.arrivalCost ?? 0} />
-          <Cost label="משלוח" value={event.expenses.deliveryCost ?? 0} />
+          <Cost label="חיוב הגעה ללקוח" value={event.expenses.arrivalCost ?? 0} />
+          <Cost label="חיוב משלוח ללקוח" value={event.expenses.deliveryCost ?? 0} />
         </Card>
       </div>
     </>
