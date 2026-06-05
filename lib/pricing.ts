@@ -78,7 +78,7 @@ export function calculateQuotePricing(quote: Quote, vatRate = businessSettings.v
   const revenueIncVat = itemsRevenueIncVat + quote.logisticsCost;
   const revenueExVat = revenueIncVat / (1 + vatRate);
   const ceramicCost = quote.items.reduce((sum, item) => sum + item.quantity * item.unitCostExVat, 0);
-  const employeeCost = quote.employeeHours * quote.employeeHourlyRate;
+  const employeeCost = 0;
   const directCosts = ceramicCost + employeeCost;
   const grossProfit = revenueExVat - directCosts;
   const margin = revenueExVat > 0 ? (grossProfit / revenueExVat) * 100 : 0;

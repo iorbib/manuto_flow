@@ -129,6 +129,7 @@ export type Quote = {
   clientId: string;
   eventId: string;
   items: QuoteItem[];
+  staffCount: number;
   employeeId: string;
   employeeHours: number;
   employeeHourlyRate: number;

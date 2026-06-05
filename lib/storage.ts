@@ -169,8 +169,6 @@ function normalizeQuote(quote: Quote & Partial<{
   pricePerParticipantIncVat: number;
   unitCostExVat: number;
 }>): Quote {
-  if (quote.items?.length) return quote;
-
   const legacyItem: QuoteItem = {
     id: createId("quote_item"),
     productId: quote.productId ?? seedData.products[0]?.id ?? "",
@@ -181,6 +179,7 @@ function normalizeQuote(quote: Quote & Partial<{
 
   return {
     ...quote,
-    items: [legacyItem]
+    staffCount: quote.staffCount ?? 1,
+    items: quote.items?.length ? quote.items : [legacyItem]
   };
 }

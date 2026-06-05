@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Calculator, Plus, Trash2 } from "lucide-react";
+import { Calculator, CheckCircle2, Plus, Trash2 } from "lucide-react";
 import { calculateQuotePricing, formatCurrency, formatPercent } from "@/lib/pricing";
 import { createId } from "@/lib/storage";
 import type { Quote, QuoteItem, StudioData } from "@/lib/types";
@@ -32,9 +32,10 @@ function makeEmptyQuote(data: StudioData): Quote {
     clientId: data.clients[0]?.id ?? "",
     eventId: data.events[0]?.id ?? "",
     items: eventItems?.length ? eventItems : [makeQuoteItem(data)],
+    staffCount: 1,
     employeeId: employee?.id ?? "",
-    employeeHours: data.businessSettings.defaultEventHours,
-    employeeHourlyRate: employee?.hourlyRate ?? 0,
+    employeeHours: 0,
+    employeeHourlyRate: 0,
     paintCost: 0,
     glazeCost: 0,
     packagingCost: 0,
@@ -91,8 +92,8 @@ export function QuoteBuilder({
               <Calculator size={22} />
             </span>
             <div>
-              <h2 className="text-2xl font-black text-ink">בואי נבנה הצעה</h2>
-              <p className="text-clay">רשימת פריטים עם כמויות, מחירים ועלויות. כל שורה משנה את הסיכום מיד.</p>
+              <h2 className="text-2xl font-black text-ink">בואי נבנה הצעת מחיר</h2>
+              <p className="text-clay">מה שהלקוח רואה: פריטים, כמות, מחיר כולל מע״מ, נסיעה ומה כלול בסדנה.</p>
             </div>
           </div>
 
@@ -119,6 +120,10 @@ export function QuoteBuilder({
                     ...quote,
                     eventId: event.target.value,
                     clientId: selectedEvent?.clientId ?? quote.clientId,
+                    staffCount: selectedEvent ? Math.max(1, selectedEvent.assignments.length || quote.staffCount || 1) : quote.staffCount,
+                    logisticsCost: selectedEvent
+                      ? (selectedEvent.expenses.arrivalCost ?? 0) + (selectedEvent.expenses.deliveryCost ?? 0)
+                      : quote.logisticsCost,
                     items: selectedEvent
                       ? selectedEvent.items.map((item) => ({
                           id: createId("quote_item"),
@@ -143,7 +148,7 @@ export function QuoteBuilder({
 
           <div className="mt-6 space-y-3">
             <div className="flex items-center justify-between gap-3">
-              <h3 className="text-xl font-black text-ink">פריטים בהצעה</h3>
+              <h3 className="text-xl font-black text-ink">מחירון ההצעה</h3>
               <ActionButton tone="quiet" onClick={() => setQuote({ ...quote, items: [...quote.items, makeQuoteItem(data)] })}>
                 <span className="inline-flex items-center gap-2">
                   <Plus size={16} />
@@ -162,7 +167,7 @@ export function QuoteBuilder({
                     </ActionButton>
                   ) : null}
                 </div>
-                <div className="grid gap-3 sm:grid-cols-4">
+                <div className="grid gap-3 sm:grid-cols-3">
                   <label className="sm:col-span-1">
                     <span className="mb-2 block text-sm font-black text-clay">פריט</span>
                     <select
@@ -185,38 +190,18 @@ export function QuoteBuilder({
                     </select>
                   </label>
                   <Field label="כמות" value={item.quantity} onChange={(value) => updateItem(item.id, { quantity: value })} />
-                  <Field label="מחיר כולל מע״מ" value={item.pricePerParticipantIncVat} onChange={(value) => updateItem(item.id, { pricePerParticipantIncVat: value })} />
-                  <Field label="עלות לפני מע״מ" value={item.unitCostExVat} onChange={(value) => updateItem(item.id, { unitCostExVat: value })} />
+                  <Field label="מחיר ללקוח כולל מע״מ" value={item.pricePerParticipantIncVat} onChange={(value) => updateItem(item.id, { pricePerParticipantIncVat: value })} />
                 </div>
                 <p className="mt-3 text-sm font-black text-clay">
-                  שורת הכנסה: {formatCurrency(item.quantity * item.pricePerParticipantIncVat)} · עלות קרמיקה: {formatCurrency(item.quantity * item.unitCostExVat)}
+                  שורת מחיר ללקוח: {formatCurrency(item.quantity * item.pricePerParticipantIncVat)} כולל מע״מ
                 </p>
               </div>
             ))}
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <label>
-              <span className="mb-2 block text-sm font-black text-clay">עובדת</span>
-              <select
-                className="input"
-                value={quote.employeeId}
-                onChange={(event) => {
-                  const employee = data.employees.find((item) => item.id === event.target.value);
-                  setQuote({ ...quote, employeeId: event.target.value, employeeHourlyRate: employee?.hourlyRate ?? quote.employeeHourlyRate });
-                }}
-              >
-                <option value="">ללא עובדת</option>
-                {data.employees.map((employee) => (
-                  <option key={employee.id} value={employee.id}>
-                    {employee.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <Field label="שעות עובדת" value={quote.employeeHours} onChange={(value) => setQuote({ ...quote, employeeHours: value })} />
-            <Field label="עלות שעת עובדת" value={quote.employeeHourlyRate} onChange={(value) => setQuote({ ...quote, employeeHourlyRate: value })} />
-            <Field label="חיוב הגעה/משלוח ללקוח" value={quote.logisticsCost} onChange={(value) => setQuote({ ...quote, logisticsCost: value })} />
+            <Field label="כמה אנשי צוות מגיעים" value={quote.staffCount ?? 1} onChange={(value) => setQuote({ ...quote, staffCount: value })} />
+            <Field label="עלות נסיעה ללקוח כולל מע״מ" value={quote.logisticsCost} onChange={(value) => setQuote({ ...quote, logisticsCost: value })} />
           </div>
 
           <div className="mt-6 flex gap-2">
@@ -239,22 +224,38 @@ export function QuoteBuilder({
         <Card className="space-y-4 bg-paper">
           <div>
             <p className="text-sm font-black text-clay">סיכום חי</p>
-            <h3 className="text-2xl font-black text-ink">כמה נשאר באמת</h3>
+            <h3 className="text-2xl font-black text-ink">הצעת מחיר</h3>
           </div>
+          <p className="text-sm font-black text-clay">מה הלקוח רואה</p>
           <SummaryRow label="סה״כ ללקוח כולל מע״מ" value={formatCurrency(pricing.revenueIncVat)} />
-          <SummaryRow label="מתוך זה חיוב הגעה/משלוח" value={formatCurrency(quote.logisticsCost)} />
-          <SummaryRow label="לפני מע״מ" value={formatCurrency(pricing.revenueExVat)} />
-          <SummaryRow label="עלות קרמיקה" value={formatCurrency(pricing.ceramicCost)} />
-          <SummaryRow label="עלות עובדת" value={formatCurrency(pricing.employeeCost)} />
-          <SummaryRow label="מה יורד מהאירוע" value={formatCurrency(pricing.directCosts)} />
-          <div className="rounded-3xl bg-mint/70 p-4">
-            <SummaryRow label="נשאר לפני מסים ושאר הוצאות" value={formatCurrency(pricing.grossProfit)} strong />
-            <SummaryRow label="כמה אוויר נשאר" value={formatPercent(pricing.margin)} strong />
+          <SummaryRow label="מתוך זה נסיעה" value={formatCurrency(quote.logisticsCost)} />
+          <SummaryRow label="אנשי צוות מגיעים" value={`${quote.staffCount ?? 1}`} />
+          <div className="rounded-3xl bg-white/60 p-4">
+            <p className="mb-3 text-sm font-black text-clay">המחיר כולל</p>
+            <Included text="הדרכה מלאה במקום" />
+            <Included text="כלי קרמיקה לכל משתתף לפי הבחירה" />
+            <Included text="צבעים, מכחולים וציוד עבודה לסדנה" />
+            <Included text="גלזורה ושריפה לאחר הסדנה" />
+            <Included text="אריזה והחזרת העבודות לאחר השריפה" />
+            <Included text="המחירים כוללים מע״מ" />
           </div>
-          <p className="rounded-3xl bg-peach/60 p-4 font-bold leading-7 text-ink">{pricing.recommendation}</p>
+          <div className="rounded-3xl bg-mint/70 p-4">
+            <p className="text-sm font-black text-clay">מספרי סטודיו פנימיים</p>
+            <SummaryRow label="נשאר לפני מסים" value={formatCurrency(pricing.grossProfit)} strong />
+            <SummaryRow label="מרווח פנימי" value={formatPercent(pricing.margin)} strong />
+          </div>
         </Card>
       </aside>
     </div>
+  );
+}
+
+function Included({ text }: { text: string }) {
+  return (
+    <p className="mb-2 flex items-center gap-2 text-sm font-bold text-ink last:mb-0">
+      <CheckCircle2 className="shrink-0 text-coral" size={16} />
+      {text}
+    </p>
   );
 }
 

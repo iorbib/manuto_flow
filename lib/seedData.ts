@@ -258,6 +258,7 @@ export const seedQuotes: Quote[] = [
         unitCostExVat: 12
       }
     ],
+    staffCount: 1,
     employeeId: "emp_alona",
     employeeHours: 4,
     employeeHourlyRate: 0,
