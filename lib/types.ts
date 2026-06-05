@@ -68,24 +68,32 @@ export type Event = {
   title: string;
   clientId: string;
   contactName: string;
+  contactPhone: string;
   date: string;
   startTime: string;
   endTime: string;
   address: string;
   hasTables: boolean;
   hasChairs: boolean;
-  hasWater: boolean;
+  hasWater?: boolean;
   participantCount: number;
   eventType: EventType;
   customEventType: string;
   eventDescription: string;
   status: EventStatus;
-  productId: string;
-  participantPriceIncVat: number;
+  items: EventItem[];
   eventHours: number;
   assignments: EventEmployeeAssignment[];
   expenses: EventExpenseConfig;
   internalNotes: string;
+};
+
+export type EventItem = {
+  id: string;
+  productId: string;
+  quantity: number;
+  pricePerItemIncVat: number;
+  unitCostExVat: number;
 };
 
 export type EventExpenseConfig = {
@@ -94,6 +102,8 @@ export type EventExpenseConfig = {
   packagingCost: number;
   firingCost: number;
   logisticsCost: number;
+  arrivalCost?: number;
+  deliveryCost?: number;
   extraExpenses?: number;
 };
 

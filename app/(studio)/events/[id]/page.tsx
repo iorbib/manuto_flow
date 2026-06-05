@@ -18,11 +18,12 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
   }
 
   const client = data.clients.find((item) => item.id === event.clientId);
-  const product = data.products.find((item) => item.id === event.productId) ?? data.products[0];
-  const pricing = product
-    ? calculateEventPricing(event, product, data.employees)
-    : { revenueIncVat: 0, grossProfit: 0, margin: 0, ceramicCost: 0, employeeCost: 0 };
+  const pricing = calculateEventPricing(event, data.employees, data.businessSettings.vatRate);
   const tasks = data.studioTasks.filter((task) => task.eventId === event.id);
+  const employeeNames = event.assignments
+    .map((assignment) => data.employees.find((employee) => employee.id === assignment.employeeId)?.name)
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <>
@@ -56,9 +57,25 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
             <h2 className="mb-4 text-2xl font-black text-ink">פרטי שטח</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               <Info icon={<MapPin size={18} />} label="כתובת" value={event.address || "לא הוגדרה"} />
-              <Info icon={<Users size={18} />} label="לקוח" value={`${event.contactName || client?.contactName || "ללא איש קשר"} · ${client?.phone || ""}`} />
-              <Info icon={<Paintbrush size={18} />} label="פריט" value={product?.name ?? "לא נבחר"} />
-              <Info icon={<CalendarDays size={18} />} label="שטח" value={`${event.hasTables ? "יש שולחנות" : "אין שולחנות"} · ${event.hasChairs ? "יש כיסאות" : "אין כיסאות"} · ${event.hasWater ? "יש מים" : "אין מים"}`} />
+              <Info icon={<Users size={18} />} label="איש קשר סדנה" value={`${event.contactName || client?.contactName || "ללא איש קשר"} · ${event.contactPhone || client?.phone || "ללא טלפון"}`} />
+              <Info icon={<Paintbrush size={18} />} label="עובדות" value={employeeNames || "לא נבחרו עובדות"} />
+              <Info icon={<CalendarDays size={18} />} label="שטח" value={`${event.hasTables ? "יש שולחנות" : "אין שולחנות"} · ${event.hasChairs ? "יש כיסאות" : "אין כיסאות"}`} />
+            </div>
+          </Card>
+
+          <Card>
+            <h2 className="mb-4 text-2xl font-black text-ink">פריטים לאירוע</h2>
+            <div className="overflow-hidden rounded-3xl bg-white/60">
+              {event.items.map((line) => {
+                const product = data.products.find((item) => item.id === line.productId);
+                return (
+                  <div key={line.id} className="grid grid-cols-[1.3fr_0.7fr_1fr] gap-3 border-b border-clay/10 p-4 font-bold text-clay last:border-b-0">
+                    <span className="text-ink">{product?.name || "פריט לא נבחר"}</span>
+                    <span>{line.quantity} יח׳</span>
+                    <span>{formatCurrency(line.pricePerItemIncVat)} לכלי</span>
+                  </div>
+                );
+              })}
             </div>
           </Card>
 
@@ -88,6 +105,8 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
           <Cost label="אריזה" value={event.expenses.packagingCost} />
           <Cost label="שריפה" value={event.expenses.firingCost} />
           <Cost label="לוגיסטיקה" value={event.expenses.logisticsCost} />
+          <Cost label="הגעה" value={event.expenses.arrivalCost ?? 0} />
+          <Cost label="משלוח" value={event.expenses.deliveryCost ?? 0} />
         </Card>
       </div>
     </>

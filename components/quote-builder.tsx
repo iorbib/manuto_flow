@@ -20,11 +20,18 @@ function makeQuoteItem(data: StudioData, productId = data.products[0]?.id ?? "",
 
 function makeEmptyQuote(data: StudioData): Quote {
   const employee = data.employees[0];
+  const eventItems = data.events[0]?.items.map((item) => ({
+    id: createId("quote_item"),
+    productId: item.productId,
+    quantity: item.quantity,
+    pricePerParticipantIncVat: item.pricePerItemIncVat,
+    unitCostExVat: item.unitCostExVat
+  }));
   return {
     id: "",
     clientId: data.clients[0]?.id ?? "",
     eventId: data.events[0]?.id ?? "",
-    items: [makeQuoteItem(data, data.events[0]?.productId, data.events[0]?.participantCount ?? 20)],
+    items: eventItems?.length ? eventItems : [makeQuoteItem(data)],
     employeeId: employee?.id ?? "",
     employeeHours: data.businessSettings.defaultEventHours,
     employeeHourlyRate: employee?.hourlyRate ?? 0,
@@ -112,7 +119,15 @@ export function QuoteBuilder({
                     ...quote,
                     eventId: event.target.value,
                     clientId: selectedEvent?.clientId ?? quote.clientId,
-                    items: selectedEvent ? [makeQuoteItem(data, selectedEvent.productId, selectedEvent.participantCount)] : quote.items
+                    items: selectedEvent
+                      ? selectedEvent.items.map((item) => ({
+                          id: createId("quote_item"),
+                          productId: item.productId,
+                          quantity: item.quantity,
+                          pricePerParticipantIncVat: item.pricePerItemIncVat,
+                          unitCostExVat: item.unitCostExVat
+                        }))
+                      : quote.items
                   });
                 }}
               >

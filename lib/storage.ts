@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { seedData } from "./seedData";
-import type { BusinessSettings, Client, Employee, Event, Product, Quote, QuoteItem, StudioData } from "./types";
+import type { BusinessSettings, Client, Employee, Event, EventItem, Product, Quote, QuoteItem, StudioData } from "./types";
 
 const STORAGE_KEY = "manuto-flow-data-v2";
 
@@ -72,7 +72,10 @@ export function useStudioData() {
         setData((current) => ({
           ...current,
           products: current.products.filter((item) => item.id !== id),
-          events: current.events.map((event) => (event.productId === id ? { ...event, productId: "" } : event)),
+          events: current.events.map((event) => ({
+            ...event,
+            items: (event.items ?? []).map((item) => (item.productId === id ? { ...item, productId: "" } : item))
+          })),
           quotes: current.quotes.map((quote) => ({
             ...quote,
             items: (quote.items ?? []).map((item) => (item.productId === id ? { ...item, productId: "" } : item))
@@ -130,8 +133,33 @@ function normalizeData(value: StudioData): StudioData {
     clients,
     products,
     employees: value.employees ?? seedData.employees,
-    events: value.events ?? seedData.events,
+    events: (value.events ?? seedData.events).map((event) => normalizeEvent(event)),
     quotes
+  };
+}
+
+function normalizeEvent(event: Event & Partial<{
+  productId: string;
+  participantPriceIncVat: number;
+}>): Event {
+  const legacyProduct = seedData.products.find((product) => product.id === event.productId) ?? seedData.products[0];
+  const legacyItem: EventItem = {
+    id: createId("event_item"),
+    productId: event.productId ?? legacyProduct?.id ?? "",
+    quantity: event.participantCount ?? 1,
+    pricePerItemIncVat: event.participantPriceIncVat ?? legacyProduct?.recommendedParticipantPriceIncVat ?? 0,
+    unitCostExVat: legacyProduct?.averageUnitCostExVat ?? 0
+  };
+
+  return {
+    ...event,
+    contactPhone: event.contactPhone ?? "",
+    items: event.items?.length ? event.items : [legacyItem],
+    expenses: {
+      ...event.expenses,
+      arrivalCost: event.expenses?.arrivalCost ?? 0,
+      deliveryCost: event.expenses?.deliveryCost ?? 0
+    }
   };
 }
 

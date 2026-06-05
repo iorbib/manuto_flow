@@ -182,26 +182,33 @@ export const seedEvents: Event[] = [
     title: "סדנת צוות מוצר",
     clientId: "client_luma",
     contactName: "מאיה",
+    contactPhone: "052-441-0091",
     date: "2026-06-08",
     startTime: "10:00",
     endTime: "14:00",
     address: "משרדי לומה, תל אביב",
     hasTables: true,
     hasChairs: true,
-    hasWater: true,
     participantCount: 28,
     eventType: "company",
     customEventType: "גיבוש צוות",
     eventDescription: "סדנה קלילה לצוות אחרי רבעון עמוס, עם דגש על חוויה משותפת.",
     status: "preparing",
-    productId: "prod_starter_plate",
-    participantPriceIncVat: 95,
+    items: [
+      {
+        id: "event_item_101",
+        productId: "prod_starter_plate",
+        quantity: 28,
+        pricePerItemIncVat: 95,
+        unitCostExVat: 10
+      }
+    ],
     eventHours: 4,
     assignments: [
       { employeeId: "emp_alona", eventHours: 4 },
       { employeeId: "emp_shaked", eventHours: 4 }
     ],
-    expenses: { paintCost: 120, glazeCost: 90, packagingCost: 80, firingCost: 160, logisticsCost: 220 },
+    expenses: { paintCost: 120, glazeCost: 90, packagingCost: 80, firingCost: 160, logisticsCost: 220, arrivalCost: 80, deliveryCost: 140 },
     internalNotes: "להביא דוגמאות מוכנות לצוות מוצר."
   },
   {
@@ -209,23 +216,30 @@ export const seedEvents: Event[] = [
     title: "מפגש מרכז נועם",
     clientId: "client_therapy",
     contactName: "רוני",
+    contactPhone: "054-923-7711",
     date: "2026-06-12",
     startTime: "17:00",
     endTime: "21:00",
     address: "מרכז נועם, רעננה",
     hasTables: true,
     hasChairs: true,
-    hasWater: true,
     participantCount: 18,
     eventType: "therapy_center",
     customEventType: "מפגש טיפולי",
     eventDescription: "קבוצה קטנה, חשוב לשמור על קצב איטי ומרחב אישי.",
     status: "quote_sent",
-    productId: "prod_cup",
-    participantPriceIncVat: 100,
+    items: [
+      {
+        id: "event_item_102",
+        productId: "prod_cup",
+        quantity: 18,
+        pricePerItemIncVat: 100,
+        unitCostExVat: 12
+      }
+    ],
     eventHours: 4,
     assignments: [{ employeeId: "emp_alona", eventHours: 4 }],
-    expenses: { paintCost: 95, glazeCost: 70, packagingCost: 55, firingCost: 115, logisticsCost: 140 },
+    expenses: { paintCost: 95, glazeCost: 70, packagingCost: 55, firingCost: 115, logisticsCost: 140, arrivalCost: 60, deliveryCost: 80 },
     internalNotes: ""
   }
 ];

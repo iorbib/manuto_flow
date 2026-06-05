@@ -29,6 +29,8 @@ export function calculatePricing(input: PricingInput) {
     input.expenses.packagingCost +
     input.expenses.firingCost +
     input.expenses.logisticsCost +
+    (input.expenses.arrivalCost ?? 0) +
+    (input.expenses.deliveryCost ?? 0) +
     (input.expenses.extraExpenses ?? 0);
   const grossProfit = revenueExVat - directCosts;
   const margin = revenueExVat > 0 ? (grossProfit / revenueExVat) * 100 : 0;
@@ -45,16 +47,38 @@ export function calculatePricing(input: PricingInput) {
   };
 }
 
-export function calculateEventPricing(event: Event, product: Product, employees: Employee[]) {
-  return calculatePricing({
-    participantCount: event.participantCount,
-    product,
-    pricePerParticipantIncVat: event.participantPriceIncVat,
-    eventHours: event.eventHours,
-    assignments: event.assignments,
-    employees,
-    expenses: event.expenses
-  });
+export function calculateEventPricing(event: Event, employees: Employee[], vatRate = businessSettings.vatRate) {
+  const revenueIncVat = event.items.reduce((sum, item) => sum + item.quantity * item.pricePerItemIncVat, 0);
+  const revenueExVat = revenueIncVat / (1 + vatRate);
+  const ceramicCost = event.items.reduce((sum, item) => sum + item.quantity * item.unitCostExVat, 0);
+  const employeeCost = event.assignments.reduce((sum, assignment) => {
+    const employee = employees.find((item) => item.id === assignment.employeeId);
+    return sum + assignment.eventHours * (employee?.hourlyRate ?? 0);
+  }, 0);
+  const directCosts =
+    ceramicCost +
+    employeeCost +
+    event.expenses.paintCost +
+    event.expenses.glazeCost +
+    event.expenses.packagingCost +
+    event.expenses.firingCost +
+    event.expenses.logisticsCost +
+    (event.expenses.arrivalCost ?? 0) +
+    (event.expenses.deliveryCost ?? 0) +
+    (event.expenses.extraExpenses ?? 0);
+  const grossProfit = revenueExVat - directCosts;
+  const margin = revenueExVat > 0 ? (grossProfit / revenueExVat) * 100 : 0;
+
+  return {
+    revenueIncVat,
+    revenueExVat,
+    ceramicCost,
+    employeeCost,
+    directCosts,
+    grossProfit,
+    margin,
+    recommendation: getPricingRecommendation(margin)
+  };
 }
 
 export function calculateQuotePricing(quote: Quote, vatRate = businessSettings.vatRate) {
