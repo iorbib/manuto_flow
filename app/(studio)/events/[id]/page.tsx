@@ -1,24 +1,35 @@
-import { notFound } from "next/navigation";
+"use client";
+
 import { CalendarDays, MapPin, Paintbrush, Users } from "lucide-react";
 import { Card, InlineLink, PageHeader, StatCard, StatusBadge, StatusTimeline } from "@/components/ui";
-import { employees, getClient, getEvent, getProduct, studioTasks } from "@/lib/data";
 import { calculateEventPricing, formatCurrency, formatPercent } from "@/lib/pricing";
+import { useStudioData } from "@/lib/storage";
 
 export default function EventDetailPage({ params }: { params: { id: string } }) {
-  const event = getEvent(params.id);
-  if (!event) notFound();
+  const { data } = useStudioData();
+  const event = data.events.find((item) => item.id === params.id);
 
-  const client = getClient(event.clientId);
-  const product = getProduct(event.productId);
-  const pricing = calculateEventPricing(event);
-  const tasks = studioTasks.filter((task) => task.eventId === event.id);
+  if (!event) {
+    return (
+      <>
+        <PageHeader title="אירוע לא נמצא" action={<InlineLink href="/events">חזרה לאירועים</InlineLink>} />
+      </>
+    );
+  }
+
+  const client = data.clients.find((item) => item.id === event.clientId);
+  const product = data.products.find((item) => item.id === event.productId) ?? data.products[0];
+  const pricing = product
+    ? calculateEventPricing(event, product, data.employees)
+    : { revenueIncVat: 0, grossProfit: 0, margin: 0, ceramicCost: 0, employeeCost: 0 };
+  const tasks = data.studioTasks.filter((task) => task.eventId === event.id);
 
   return (
     <>
       <PageHeader
         title={event.title}
-        description={`${client?.name} · ${event.customEventType}`}
-        action={<InlineLink href="/events">חזרה לאירועים</InlineLink>}
+        description={`${client?.name || "ללא לקוח"} · ${event.customEventType || "ללא סוג חופשי"}`}
+        action={<InlineLink href="/events">עריכת אירועים</InlineLink>}
       />
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -33,19 +44,21 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
           <Card className="space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <StatusBadge status={event.status} />
-              <p className="font-bold text-clay">{event.date} · {event.time}</p>
+              <p className="font-bold text-clay">
+                {event.date} · {event.startTime}-{event.endTime}
+              </p>
             </div>
             <StatusTimeline status={event.status} />
-            <p className="text-lg leading-8 text-ink">{event.eventDescription}</p>
+            <p className="text-lg leading-8 text-ink">{event.eventDescription || "אין תיאור עדיין."}</p>
           </Card>
 
           <Card>
             <h2 className="mb-4 text-2xl font-black text-ink">פרטי שטח</h2>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Info icon={<MapPin size={18} />} label="מקום" value={`${event.venue}, ${event.city}`} />
-              <Info icon={<Users size={18} />} label="לקוח" value={`${client?.contactName} · ${client?.phone}`} />
-              <Info icon={<Paintbrush size={18} />} label="מוצר" value={product?.name ?? "לא נבחר"} />
-              <Info icon={<CalendarDays size={18} />} label="משך" value={`${event.eventHours} שעות, לא כולל נסיעה`} />
+              <Info icon={<MapPin size={18} />} label="כתובת" value={event.address || "לא הוגדרה"} />
+              <Info icon={<Users size={18} />} label="לקוח" value={`${event.contactName || client?.contactName || "ללא איש קשר"} · ${client?.phone || ""}`} />
+              <Info icon={<Paintbrush size={18} />} label="פריט" value={product?.name ?? "לא נבחר"} />
+              <Info icon={<CalendarDays size={18} />} label="שטח" value={`${event.hasTables ? "יש שולחנות" : "אין שולחנות"} · ${event.hasChairs ? "יש כיסאות" : "אין כיסאות"} · ${event.hasWater ? "יש מים" : "אין מים"}`} />
             </div>
           </Card>
 
@@ -75,17 +88,6 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
           <Cost label="אריזה" value={event.expenses.packagingCost} />
           <Cost label="שריפה" value={event.expenses.firingCost} />
           <Cost label="לוגיסטיקה" value={event.expenses.logisticsCost} />
-          <div className="mt-5 rounded-3xl bg-lavender/50 p-4">
-            <p className="font-black text-ink">צוות</p>
-            {event.assignments.map((assignment) => {
-              const employee = employees.find((item) => item.id === assignment.employeeId);
-              return (
-                <p key={assignment.employeeId} className="mt-1 font-bold text-clay">
-                  {employee?.name} · {assignment.eventHours} שעות
-                </p>
-              );
-            })}
-          </div>
         </Card>
       </div>
     </>

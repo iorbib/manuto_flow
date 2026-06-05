@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { statusColors, statusLabels, statusTimeline } from "@/lib/data";
+import { statusColors, statusLabels, statusTimeline } from "@/lib/seedData";
 import type { EventStatus } from "@/lib/types";
 
 export function PageHeader({
@@ -94,5 +94,29 @@ export function EmptyState({ title, body }: { title: string; body: string }) {
       <p className="text-xl font-black text-ink">{title}</p>
       <p className="mt-2 text-clay">{body}</p>
     </Card>
+  );
+}
+
+export function ActionButton({
+  children,
+  tone = "primary",
+  type = "button",
+  onClick
+}: {
+  children: React.ReactNode;
+  tone?: "primary" | "quiet" | "danger";
+  type?: "button" | "submit";
+  onClick?: () => void;
+}) {
+  const styles = {
+    primary: "bg-coral text-white shadow-soft",
+    quiet: "bg-white/70 text-clay hover:text-ink",
+    danger: "bg-red-100 text-red-900"
+  };
+
+  return (
+    <button type={type} onClick={onClick} className={`rounded-full px-4 py-2 text-sm font-black transition ${styles[tone]}`}>
+      {children}
+    </button>
   );
 }

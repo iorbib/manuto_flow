@@ -21,6 +21,7 @@ const navigation = [
   { href: "/events", label: "אירועים", icon: Paintbrush },
   { href: "/quotes", label: "הצעות", icon: ScrollText },
   { href: "/clients", label: "לקוחות", icon: Users },
+  { href: "/products", label: "פריטים", icon: Package },
   { href: "/inventory", label: "מלאי", icon: Package },
   { href: "/employees", label: "עובדות", icon: WalletCards },
   { href: "/tasks", label: "סטודיו", icon: ClipboardList },

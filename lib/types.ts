@@ -30,22 +30,30 @@ export type Client = {
   name: string;
   contactName: string;
   phone: string;
-  city: string;
+  email: string;
+  clientType: "company" | "therapy_center" | "school" | "private" | "community" | "other";
   notes: string;
 };
 
 export type Product = {
   id: string;
   name: string;
-  defaultUnitCostExVat: number;
-  defaultParticipantPriceIncVat: number;
+  type: string;
+  averageUnitCostExVat: number;
+  recommendedParticipantPriceIncVat: number;
+  supplierName: string;
+  supplierUrl: string;
+  isActive: boolean;
 };
 
 export type Employee = {
   id: string;
   name: string;
-  role: "owner" | "employee";
+  role: "בעלים" | "עובדת" | "פרילנס";
   hourlyRate: number;
+  phone: string;
+  isActive: boolean;
+  notes: string;
 };
 
 export type EventEmployeeAssignment = {
@@ -57,10 +65,14 @@ export type Event = {
   id: string;
   title: string;
   clientId: string;
+  contactName: string;
   date: string;
-  time: string;
-  city: string;
-  venue: string;
+  startTime: string;
+  endTime: string;
+  address: string;
+  hasTables: boolean;
+  hasChairs: boolean;
+  hasWater: boolean;
   participantCount: number;
   eventType: EventType;
   customEventType: string;
@@ -71,6 +83,7 @@ export type Event = {
   eventHours: number;
   assignments: EventEmployeeAssignment[];
   expenses: EventExpenseConfig;
+  internalNotes: string;
 };
 
 export type EventExpenseConfig = {
@@ -101,7 +114,20 @@ export type StudioTask = {
 
 export type Quote = {
   id: string;
+  clientId: string;
   eventId: string;
+  participantCount: number;
+  productId: string;
+  pricePerParticipantIncVat: number;
+  unitCostExVat: number;
+  employeeId: string;
+  employeeHours: number;
+  employeeHourlyRate: number;
+  paintCost: number;
+  glazeCost: number;
+  packagingCost: number;
+  firingCost: number;
+  logisticsCost: number;
   status: "draft" | "sent" | "approved";
   createdAt: string;
 };
@@ -127,4 +153,17 @@ export type BusinessSettings = {
   defaultPackagingCost: number;
   defaultFiringCost: number;
   defaultLogisticsCost: number;
+};
+
+export type StudioData = {
+  clients: Client[];
+  products: Product[];
+  employees: Employee[];
+  events: Event[];
+  quotes: Quote[];
+  inventory: InventoryItem[];
+  studioTasks: StudioTask[];
+  supplierProducts: SupplierProduct[];
+  businessSettings: BusinessSettings;
+  dailySupportMessages: string[];
 };

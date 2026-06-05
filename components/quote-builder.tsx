@@ -1,153 +1,204 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Calculator, Plus } from "lucide-react";
-import { businessSettings, employees, products } from "@/lib/data";
-import { calculatePricing, formatCurrency, formatPercent } from "@/lib/pricing";
-import { Card } from "./ui";
+import { calculateQuotePricing, formatCurrency, formatPercent } from "@/lib/pricing";
+import { createId } from "@/lib/storage";
+import type { Quote, StudioData } from "@/lib/types";
+import { ActionButton, Card } from "./ui";
 
-export function QuoteBuilder() {
-  const [participantCount, setParticipantCount] = useState(24);
-  const [productId, setProductId] = useState(products[0].id);
-  const product = products.find((item) => item.id === productId) ?? products[0];
-  const [price, setPrice] = useState(product.defaultParticipantPriceIncVat);
-  const [eventHours, setEventHours] = useState(businessSettings.defaultEventHours);
-  const [employeeIds, setEmployeeIds] = useState(["emp_alona", "emp_shaked"]);
-  const [expenses, setExpenses] = useState({
-    paintCost: businessSettings.defaultPaintCost,
-    glazeCost: businessSettings.defaultGlazeCost,
-    packagingCost: businessSettings.defaultPackagingCost,
-    firingCost: businessSettings.defaultFiringCost,
-    logisticsCost: businessSettings.defaultLogisticsCost,
-    extraExpenses: 0
-  });
+const emptyQuote: Quote = {
+  id: "",
+  clientId: "",
+  eventId: "",
+  participantCount: 20,
+  productId: "",
+  pricePerParticipantIncVat: 100,
+  unitCostExVat: 10,
+  employeeId: "",
+  employeeHours: 4,
+  employeeHourlyRate: 0,
+  paintCost: 120,
+  glazeCost: 90,
+  packagingCost: 80,
+  firingCost: 160,
+  logisticsCost: 220,
+  status: "draft",
+  createdAt: new Date().toISOString().slice(0, 10)
+};
 
-  const pricing = useMemo(
-    () =>
-      calculatePricing({
-        participantCount,
-        product,
-        pricePerParticipantIncVat: price,
-        eventHours,
-        assignments: employeeIds.map((employeeId) => ({ employeeId, eventHours })),
-        expenses
-      }),
-    [employeeIds, eventHours, expenses, participantCount, price, product]
-  );
+export function QuoteBuilder({
+  data,
+  editingQuote,
+  onSave,
+  onDone
+}: {
+  data: StudioData;
+  editingQuote?: Quote | null;
+  onSave: (quote: Quote) => void;
+  onDone?: () => void;
+}) {
+  const [quote, setQuote] = useState<Quote>(emptyQuote);
 
-  function updateExpense(key: keyof typeof expenses, value: number) {
-    setExpenses((current) => ({ ...current, [key]: value }));
+  useEffect(() => {
+    if (editingQuote) {
+      setQuote(editingQuote);
+      return;
+    }
+
+    const product = data.products[0];
+    const employee = data.employees[0];
+    setQuote({
+      ...emptyQuote,
+      clientId: data.clients[0]?.id ?? "",
+      eventId: data.events[0]?.id ?? "",
+      productId: product?.id ?? "",
+      pricePerParticipantIncVat: product?.recommendedParticipantPriceIncVat ?? 100,
+      unitCostExVat: product?.averageUnitCostExVat ?? 10,
+      employeeId: employee?.id ?? "",
+      employeeHourlyRate: employee?.hourlyRate ?? 0
+    });
+  }, [data.clients, data.employees, data.events, data.products, editingQuote]);
+
+  const pricing = useMemo(() => calculateQuotePricing(quote), [quote]);
+
+  function submitQuote(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    onSave(quote.id ? quote : { ...quote, id: createId("quote"), createdAt: new Date().toISOString().slice(0, 10) });
+    onDone?.();
   }
 
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_390px]">
       <Card>
-        <div className="mb-5 flex items-center gap-3">
-          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-coral text-white">
-            <Calculator size={22} />
-          </span>
-          <div>
-            <h2 className="text-2xl font-black text-ink">בואי נבנה הצעה</h2>
-            <p className="text-clay">המספרים מתעדכנים תוך כדי כדי לראות כמה אוויר נשאר.</p>
+        <form onSubmit={submitQuote}>
+          <div className="mb-5 flex items-center gap-3">
+            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-coral text-white">
+              <Calculator size={22} />
+            </span>
+            <div>
+              <h2 className="text-2xl font-black text-ink">בואי נבנה הצעה</h2>
+              <p className="text-clay">כל שינוי במספרים מתעדכן מיד ונשמר כטיוטה או הצעה.</p>
+            </div>
           </div>
-        </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="כמות משתתפים">
-            <input className="input" type="number" min="1" value={participantCount} onChange={(event) => setParticipantCount(Number(event.target.value))} />
-          </Field>
-          <Field label="מוצר">
-            <select
-              className="input"
-              value={productId}
-              onChange={(event) => {
-                const nextProduct = products.find((item) => item.id === event.target.value) ?? products[0];
-                setProductId(nextProduct.id);
-                setPrice(nextProduct.defaultParticipantPriceIncVat);
-              }}
-            >
-              {products.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="מחיר למשתתף כולל מע״מ">
-            <input className="input" type="number" min="0" value={price} onChange={(event) => setPrice(Number(event.target.value))} />
-          </Field>
-          <Field label="שעות אירוע">
-            <input className="input" type="number" min="1" value={eventHours} onChange={(event) => setEventHours(Number(event.target.value))} />
-          </Field>
-        </div>
-
-        <div className="mt-6">
-          <p className="mb-3 text-sm font-black text-clay">מי מגיעה לאירוע</p>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {employees.map((employee) => (
-              <label
-                key={employee.id}
-                className={`flex cursor-pointer items-center justify-between rounded-2xl border px-4 py-3 font-bold ${
-                  employeeIds.includes(employee.id) ? "border-coral bg-peach/60 text-ink" : "border-clay/10 bg-white/60 text-clay"
-                }`}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label>
+              <span className="mb-2 block text-sm font-black text-clay">לקוח</span>
+              <select className="input" value={quote.clientId} onChange={(event) => setQuote({ ...quote, clientId: event.target.value })}>
+                <option value="">ללא לקוח</option>
+                {data.clients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span className="mb-2 block text-sm font-black text-clay">אירוע</span>
+              <select
+                className="input"
+                value={quote.eventId}
+                onChange={(event) => {
+                  const selectedEvent = data.events.find((item) => item.id === event.target.value);
+                  setQuote({
+                    ...quote,
+                    eventId: event.target.value,
+                    clientId: selectedEvent?.clientId ?? quote.clientId,
+                    participantCount: selectedEvent?.participantCount ?? quote.participantCount,
+                    productId: selectedEvent?.productId ?? quote.productId,
+                    pricePerParticipantIncVat: selectedEvent?.participantPriceIncVat ?? quote.pricePerParticipantIncVat
+                  });
+                }}
               >
-                <span>{employee.name}</span>
-                <input
-                  type="checkbox"
-                  checked={employeeIds.includes(employee.id)}
-                  onChange={(event) => {
-                    setEmployeeIds((current) =>
-                      event.target.checked ? [...current, employee.id] : current.filter((id) => id !== employee.id)
-                    );
-                  }}
-                />
-              </label>
-            ))}
+                <option value="">ללא אירוע</option>
+                {data.events.map((eventItem) => (
+                  <option key={eventItem.id} value={eventItem.id}>
+                    {eventItem.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Field label="כמות משתתפים" value={quote.participantCount} onChange={(value) => setQuote({ ...quote, participantCount: value })} />
+            <label>
+              <span className="mb-2 block text-sm font-black text-clay">פריט</span>
+              <select
+                className="input"
+                value={quote.productId}
+                onChange={(event) => {
+                  const product = data.products.find((item) => item.id === event.target.value);
+                  setQuote({
+                    ...quote,
+                    productId: event.target.value,
+                    pricePerParticipantIncVat: product?.recommendedParticipantPriceIncVat ?? quote.pricePerParticipantIncVat,
+                    unitCostExVat: product?.averageUnitCostExVat ?? quote.unitCostExVat
+                  });
+                }}
+              >
+                <option value="">ללא פריט</option>
+                {data.products.map((product) => (
+                  <option key={product.id} value={product.id}>
+                    {product.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Field label="מחיר למשתתף כולל מע״מ" value={quote.pricePerParticipantIncVat} onChange={(value) => setQuote({ ...quote, pricePerParticipantIncVat: value })} />
+            <Field label="עלות יחידה לפני מע״מ" value={quote.unitCostExVat} onChange={(value) => setQuote({ ...quote, unitCostExVat: value })} />
+            <label>
+              <span className="mb-2 block text-sm font-black text-clay">עובדת</span>
+              <select
+                className="input"
+                value={quote.employeeId}
+                onChange={(event) => {
+                  const employee = data.employees.find((item) => item.id === event.target.value);
+                  setQuote({ ...quote, employeeId: event.target.value, employeeHourlyRate: employee?.hourlyRate ?? quote.employeeHourlyRate });
+                }}
+              >
+                <option value="">ללא עובדת</option>
+                {data.employees.map((employee) => (
+                  <option key={employee.id} value={employee.id}>
+                    {employee.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Field label="שעות עובדת" value={quote.employeeHours} onChange={(value) => setQuote({ ...quote, employeeHours: value })} />
+            <Field label="עלות שעת עובדת" value={quote.employeeHourlyRate} onChange={(value) => setQuote({ ...quote, employeeHourlyRate: value })} />
+            <Field label="עלות צבעים" value={quote.paintCost} onChange={(value) => setQuote({ ...quote, paintCost: value })} />
+            <Field label="עלות גלזורה" value={quote.glazeCost} onChange={(value) => setQuote({ ...quote, glazeCost: value })} />
+            <Field label="עלות אריזה" value={quote.packagingCost} onChange={(value) => setQuote({ ...quote, packagingCost: value })} />
+            <Field label="עלות שריפה" value={quote.firingCost} onChange={(value) => setQuote({ ...quote, firingCost: value })} />
+            <Field label="עלות לוגיסטיקה" value={quote.logisticsCost} onChange={(value) => setQuote({ ...quote, logisticsCost: value })} />
           </div>
-        </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <Field label="צבעים">
-            <input className="input" type="number" min="0" value={expenses.paintCost} onChange={(event) => updateExpense("paintCost", Number(event.target.value))} />
-          </Field>
-          <Field label="גלזורה">
-            <input className="input" type="number" min="0" value={expenses.glazeCost} onChange={(event) => updateExpense("glazeCost", Number(event.target.value))} />
-          </Field>
-          <Field label="אריזה">
-            <input className="input" type="number" min="0" value={expenses.packagingCost} onChange={(event) => updateExpense("packagingCost", Number(event.target.value))} />
-          </Field>
-          <Field label="שריפה">
-            <input className="input" type="number" min="0" value={expenses.firingCost} onChange={(event) => updateExpense("firingCost", Number(event.target.value))} />
-          </Field>
-          <Field label="לוגיסטיקה">
-            <input className="input" type="number" min="0" value={expenses.logisticsCost} onChange={(event) => updateExpense("logisticsCost", Number(event.target.value))} />
-          </Field>
-          <Field label="הוצאות נוספות">
-            <input className="input" type="number" min="0" value={expenses.extraExpenses} onChange={(event) => updateExpense("extraExpenses", Number(event.target.value))} />
-          </Field>
-        </div>
-
-        <button className="mt-6 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 font-black text-white">
-          <Plus size={18} />
-          לשמור טיוטת הצעה
-        </button>
+          <div className="mt-6 flex gap-2">
+            <ActionButton type="submit">
+              <span className="inline-flex items-center gap-2">
+                <Plus size={18} />
+                {quote.id ? "שמירת הצעה" : "יצירת הצעה"}
+              </span>
+            </ActionButton>
+            {onDone ? (
+              <ActionButton tone="quiet" onClick={onDone}>
+                ביטול
+              </ActionButton>
+            ) : null}
+          </div>
+        </form>
       </Card>
 
       <aside className="lg:sticky lg:top-8 lg:self-start">
         <Card className="space-y-4 bg-paper">
           <div>
-            <p className="text-sm font-black text-clay">סיכום דביק</p>
+            <p className="text-sm font-black text-clay">סיכום חי</p>
             <h3 className="text-2xl font-black text-ink">כמה נשאר באמת</h3>
           </div>
-          <SummaryRow label="הכנסה כולל מע״מ" value={formatCurrency(pricing.revenueIncVat)} />
-          <SummaryRow label="הכנסה ללא מע״מ" value={formatCurrency(pricing.revenueExVat)} />
+          <SummaryRow label="סה״כ ללקוח כולל מע״מ" value={formatCurrency(pricing.revenueIncVat)} />
+          <SummaryRow label="לפני מע״מ" value={formatCurrency(pricing.revenueExVat)} />
           <SummaryRow label="עלות קרמיקה" value={formatCurrency(pricing.ceramicCost)} />
-          <SummaryRow label="עלות עובדות" value={formatCurrency(pricing.employeeCost)} />
-          <SummaryRow label="צבעים" value={formatCurrency(expenses.paintCost)} />
-          <SummaryRow label="גלזורה" value={formatCurrency(expenses.glazeCost)} />
-          <SummaryRow label="אריזה" value={formatCurrency(expenses.packagingCost)} />
-          <SummaryRow label="שריפה" value={formatCurrency(expenses.firingCost)} />
-          <SummaryRow label="לוגיסטיקה" value={formatCurrency(expenses.logisticsCost)} />
+          <SummaryRow label="עלות עובדת" value={formatCurrency(pricing.employeeCost)} />
+          <SummaryRow label="מה יורד מהאירוע" value={formatCurrency(pricing.directCosts)} />
           <div className="rounded-3xl bg-mint/70 p-4">
             <SummaryRow label="נשאר לפני מסים ושאר הוצאות" value={formatCurrency(pricing.grossProfit)} strong />
             <SummaryRow label="כמה אוויר נשאר" value={formatPercent(pricing.margin)} strong />
@@ -159,11 +210,11 @@ export function QuoteBuilder() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
   return (
-    <label className="block">
+    <label>
       <span className="mb-2 block text-sm font-black text-clay">{label}</span>
-      {children}
+      <input className="input" type="number" min="0" value={value} onChange={(event) => onChange(Number(event.target.value))} />
     </label>
   );
 }

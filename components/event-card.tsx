@@ -1,13 +1,10 @@
 import Link from "next/link";
 import { CalendarDays, MapPin, Users } from "lucide-react";
-import { getClient, getProduct } from "@/lib/data";
+import type { Client, Product } from "@/lib/types";
 import type { Event } from "@/lib/types";
 import { Card, StatusBadge, StatusTimeline } from "./ui";
 
-export function EventCard({ event }: { event: Event }) {
-  const client = getClient(event.clientId);
-  const product = getProduct(event.productId);
-
+export function EventCard({ event, client, product }: { event: Event; client?: Client; product?: Product }) {
   return (
     <Card className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -24,11 +21,11 @@ export function EventCard({ event }: { event: Event }) {
       <div className="grid gap-3 text-sm font-bold text-clay sm:grid-cols-3">
         <span className="inline-flex items-center gap-2">
           <CalendarDays size={17} />
-          {event.date} · {event.time}
+          {event.date} · {event.startTime}
         </span>
         <span className="inline-flex items-center gap-2">
           <MapPin size={17} />
-          {event.city}, {event.venue}
+          {event.address}
         </span>
         <span className="inline-flex items-center gap-2">
           <Users size={17} />

@@ -1,21 +1,24 @@
+"use client";
+
 import { Card, PageHeader } from "@/components/ui";
-import { businessSettings } from "@/lib/data";
 import { formatCurrency } from "@/lib/pricing";
+import { useStudioData } from "@/lib/storage";
 
 export default function SettingsPage() {
+  const { data } = useStudioData();
   const settings = [
-    ["מע״מ ברירת מחדל", `${businessSettings.vatRate * 100}%`],
-    ["משך אירוע ברירת מחדל", `${businessSettings.defaultEventHours} שעות`],
-    ["עלות צבעים", formatCurrency(businessSettings.defaultPaintCost)],
-    ["עלות גלזורה", formatCurrency(businessSettings.defaultGlazeCost)],
-    ["עלות אריזה", formatCurrency(businessSettings.defaultPackagingCost)],
-    ["עלות שריפה", formatCurrency(businessSettings.defaultFiringCost)],
-    ["עלות לוגיסטיקה", formatCurrency(businessSettings.defaultLogisticsCost)]
+    ["מע״מ ברירת מחדל", `${data.businessSettings.vatRate * 100}%`],
+    ["משך אירוע ברירת מחדל", `${data.businessSettings.defaultEventHours} שעות`],
+    ["עלות צבעים", formatCurrency(data.businessSettings.defaultPaintCost)],
+    ["עלות גלזורה", formatCurrency(data.businessSettings.defaultGlazeCost)],
+    ["עלות אריזה", formatCurrency(data.businessSettings.defaultPackagingCost)],
+    ["עלות שריפה", formatCurrency(data.businessSettings.defaultFiringCost)],
+    ["עלות לוגיסטיקה", formatCurrency(data.businessSettings.defaultLogisticsCost)]
   ];
 
   return (
     <>
-      <PageHeader title="הגדרות" description="ערכי ברירת מחדל שמשפיעים על תמחור ותכנון אירועים." />
+      <PageHeader title="הגדרות" description="ערכי ברירת מחדל מתוך שכבת הדאטה המקומית. עריכה מלאה שלהם תיכנס בשלב הבא." />
       <Card>
         <div className="grid gap-3 sm:grid-cols-2">
           {settings.map(([label, value]) => (

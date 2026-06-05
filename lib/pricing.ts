@@ -1,5 +1,5 @@
-import { businessSettings, employees, getProduct } from "./data";
-import type { Event, EventExpenseConfig, EventEmployeeAssignment, Product } from "./types";
+import { businessSettings } from "./seedData";
+import type { Employee, Event, EventExpenseConfig, EventEmployeeAssignment, Product, Quote } from "./types";
 
 export type PricingInput = {
   participantCount: number;
@@ -7,6 +7,7 @@ export type PricingInput = {
   pricePerParticipantIncVat: number;
   eventHours: number;
   assignments: EventEmployeeAssignment[];
+  employees: Employee[];
   expenses: EventExpenseConfig;
   vatRate?: number;
 };
@@ -15,9 +16,9 @@ export function calculatePricing(input: PricingInput) {
   const vatRate = input.vatRate ?? businessSettings.vatRate;
   const revenueIncVat = input.participantCount * input.pricePerParticipantIncVat;
   const revenueExVat = revenueIncVat / (1 + vatRate);
-  const ceramicCost = input.participantCount * input.product.defaultUnitCostExVat;
+  const ceramicCost = input.participantCount * input.product.averageUnitCostExVat;
   const employeeCost = input.assignments.reduce((sum, assignment) => {
-    const employee = employees.find((item) => item.id === assignment.employeeId);
+    const employee = input.employees.find((item) => item.id === assignment.employeeId);
     return sum + assignment.eventHours * (employee?.hourlyRate ?? 0);
   }, 0);
   const directCosts =
@@ -44,20 +45,44 @@ export function calculatePricing(input: PricingInput) {
   };
 }
 
-export function calculateEventPricing(event: Event) {
-  const product = getProduct(event.productId);
-  if (!product) {
-    throw new Error(`Missing product for event ${event.id}`);
-  }
-
+export function calculateEventPricing(event: Event, product: Product, employees: Employee[]) {
   return calculatePricing({
     participantCount: event.participantCount,
     product,
     pricePerParticipantIncVat: event.participantPriceIncVat,
     eventHours: event.eventHours,
     assignments: event.assignments,
+    employees,
     expenses: event.expenses
   });
+}
+
+export function calculateQuotePricing(quote: Quote) {
+  const revenueIncVat = quote.participantCount * quote.pricePerParticipantIncVat;
+  const revenueExVat = revenueIncVat / 1.18;
+  const ceramicCost = quote.participantCount * quote.unitCostExVat;
+  const employeeCost = quote.employeeHours * quote.employeeHourlyRate;
+  const directCosts =
+    ceramicCost +
+    employeeCost +
+    quote.paintCost +
+    quote.glazeCost +
+    quote.packagingCost +
+    quote.firingCost +
+    quote.logisticsCost;
+  const grossProfit = revenueExVat - directCosts;
+  const margin = revenueExVat > 0 ? (grossProfit / revenueExVat) * 100 : 0;
+
+  return {
+    revenueIncVat,
+    revenueExVat,
+    ceramicCost,
+    employeeCost,
+    directCosts,
+    grossProfit,
+    margin,
+    recommendation: getPricingRecommendation(margin)
+  };
 }
 
 function getPricingRecommendation(margin: number) {
