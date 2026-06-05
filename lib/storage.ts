@@ -7,6 +7,7 @@ import type { BusinessSettings, Client, Employee, Event, EventItem, Product, Quo
 
 const STORAGE_KEY = "manuto-flow-data-v2";
 const REMOTE_STATE_ID = "main";
+type RemoteStudioData = { data: StudioData; updatedAt: string | null };
 
 export function createId(prefix: string) {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -40,17 +41,17 @@ export function saveStudioData(data: StudioData) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-async function loadRemoteStudioData(): Promise<StudioData | null> {
+async function loadRemoteStudioData(): Promise<RemoteStudioData | null> {
   if (!supabase) return null;
 
-  const { data, error } = await supabase.from("studio_state").select("data").eq("id", REMOTE_STATE_ID).maybeSingle();
+  const { data, error } = await supabase.from("studio_state").select("data, updated_at").eq("id", REMOTE_STATE_ID).maybeSingle();
 
   if (error) {
     console.warn("Could not load studio state from Supabase", error.message);
     return null;
   }
 
-  return data?.data ? normalizeData(data.data as StudioData) : null;
+  return data?.data ? { data: normalizeData(data.data as StudioData), updatedAt: data.updated_at ?? null } : null;
 }
 
 async function saveRemoteStudioData(data: StudioData) {
@@ -82,17 +83,20 @@ export function useStudioData() {
   const [syncMode, setSyncMode] = useState<"local" | "supabase">("local");
   const applyingRemoteData = useRef(false);
   const lastSavedData = useRef("");
+  const currentSerializedData = useRef(JSON.stringify(seedData));
   const currentData = useRef<StudioData>(seedData);
+  const isSaving = useRef(false);
 
-  function applyRemoteData(nextData: StudioData) {
+  function applyRemoteData(nextData: StudioData, force = false) {
     const normalizedData = normalizeData(nextData);
     const serializedData = JSON.stringify(normalizedData);
 
-    if (serializedData === JSON.stringify(currentData.current)) return;
+    if (!force && serializedData === currentSerializedData.current) return;
 
     applyingRemoteData.current = true;
     lastSavedData.current = serializedData;
     currentData.current = normalizedData;
+    currentSerializedData.current = serializedData;
     setData(normalizedData);
     saveStudioData(normalizedData);
   }
@@ -101,10 +105,11 @@ export function useStudioData() {
     let cancelled = false;
 
     async function loadData() {
-      const localData = loadStudioData();
-
       if (!supabase) {
+        const localData = loadStudioData();
         if (!cancelled) {
+          currentData.current = localData;
+          currentSerializedData.current = JSON.stringify(localData);
           setData(localData);
           setSyncMode("local");
           setReady(true);
@@ -112,23 +117,24 @@ export function useStudioData() {
         return;
       }
 
-      const remoteData = await loadRemoteStudioData();
-      const nextData = remoteData ?? localData;
+      const remoteRow = await loadRemoteStudioData();
+      const nextData = remoteRow?.data ?? seedData;
       const serializedData = JSON.stringify(nextData);
 
-      if (!remoteData) {
-        const saved = await saveRemoteStudioData(localData);
+      if (!remoteRow) {
+        const saved = await saveRemoteStudioData(seedData);
         if (saved) {
-          lastSavedData.current = JSON.stringify(localData);
+          lastSavedData.current = JSON.stringify(seedData);
         }
       }
 
       if (!cancelled) {
-        applyingRemoteData.current = Boolean(remoteData);
-        if (remoteData) {
+        applyingRemoteData.current = Boolean(remoteRow);
+        if (remoteRow) {
           lastSavedData.current = serializedData;
         }
         currentData.current = nextData;
+        currentSerializedData.current = serializedData;
         setData(nextData);
         saveStudioData(nextData);
         setSyncMode("supabase");
@@ -139,8 +145,10 @@ export function useStudioData() {
     loadData();
 
     async function refreshFromCloud() {
-      const remoteData = await loadRemoteStudioData();
-      if (remoteData) applyRemoteData(remoteData);
+      if (isSaving.current) return;
+
+      const remoteRow = await loadRemoteStudioData();
+      if (remoteRow) applyRemoteData(remoteRow.data);
     }
 
     const channel = supabase
@@ -154,7 +162,9 @@ export function useStudioData() {
           const nextData = (payload.new as { data?: StudioData } | null)?.data;
           if (!nextData) return;
 
-          applyRemoteData(nextData);
+          if (!isSaving.current) {
+            applyRemoteData(nextData);
+          }
         }
       )
       .subscribe();
@@ -186,11 +196,20 @@ export function useStudioData() {
     if (serializedData === lastSavedData.current) return;
 
     currentData.current = data;
+    currentSerializedData.current = serializedData;
     saveStudioData(data);
+
+    if (!supabase) {
+      lastSavedData.current = serializedData;
+      return;
+    }
+
+    isSaving.current = true;
     saveRemoteStudioData(data).then((saved) => {
-      if (saved) {
+      if (saved && currentSerializedData.current === serializedData) {
         lastSavedData.current = serializedData;
       }
+      isSaving.current = false;
     });
   }, [data, ready]);
 
