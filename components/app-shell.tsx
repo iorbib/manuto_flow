@@ -32,7 +32,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen pb-24 lg:pb-0">
+    <div className="min-h-screen pb-28 lg:pb-0">
       <aside className="fixed bottom-0 right-0 z-40 w-full border-t border-clay/10 bg-paper/95 px-2 py-2 shadow-soft backdrop-blur lg:bottom-auto lg:top-0 lg:h-screen lg:w-72 lg:border-l lg:border-t-0 lg:px-5 lg:py-6">
         <Link href="/dashboard" className="mb-8 hidden items-center gap-3 lg:flex">
           <span className="grid h-12 w-12 place-items-center rounded-3xl bg-coral text-white shadow-soft">
@@ -44,7 +44,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </span>
         </Link>
 
-        <nav className="grid grid-cols-5 gap-1 lg:grid-cols-1 lg:gap-2">
+        <nav className="mobile-nav-scroll flex gap-1 overflow-x-auto pb-[env(safe-area-inset-bottom)] lg:grid lg:grid-cols-1 lg:gap-2 lg:overflow-visible lg:pb-0">
           {navigation.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -52,7 +52,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl px-2 text-xs font-bold transition lg:min-h-0 lg:flex-row lg:justify-start lg:gap-3 lg:px-4 lg:py-3 lg:text-base ${
+                className={`flex min-h-14 min-w-[4.75rem] shrink-0 flex-col items-center justify-center gap-1 rounded-2xl px-2 text-xs font-bold transition lg:min-h-0 lg:min-w-0 lg:flex-row lg:justify-start lg:gap-3 lg:px-4 lg:py-3 lg:text-base ${
                   active ? "bg-coral text-white shadow-soft" : "text-clay hover:bg-peach/50 hover:text-ink"
                 }`}
               >

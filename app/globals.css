@@ -29,6 +29,14 @@ textarea {
   font: inherit;
 }
 
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: rgba(242, 140, 130, 0.18);
+}
+
 ::selection {
   background: #f28c82;
   color: white;
@@ -48,6 +56,14 @@ textarea {
 .input:focus {
   border-color: #f28c82;
   box-shadow: 0 0 0 4px rgba(242, 140, 130, 0.16);
+}
+
+.mobile-nav-scroll {
+  scrollbar-width: none;
+}
+
+.mobile-nav-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 .studio-card {
