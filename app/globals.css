@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  background: #fff8f1;
+  color: #3d302b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top right, rgba(248, 183, 196, 0.28), transparent 30rem),
+    linear-gradient(180deg, #fff8f1 0%, #fff2e7 100%);
+  color: #3d302b;
+  font-family: "Arial Hebrew", "Noto Sans Hebrew", Arial, system-ui, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: #f28c82;
+  color: white;
+}
+
+.input {
+  width: 100%;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(185, 113, 92, 0.18);
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0.85rem 1rem;
+  color: #3d302b;
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.input:focus {
+  border-color: #f28c82;
+  box-shadow: 0 0 0 4px rgba(242, 140, 130, 0.16);
+}
+
+.studio-card {
+  border: 1px solid rgba(185, 113, 92, 0.14);
+  background: rgba(255, 253, 248, 0.88);
+  box-shadow: 0 18px 55px rgba(185, 113, 92, 0.12);
+  backdrop-filter: blur(16px);
+}
