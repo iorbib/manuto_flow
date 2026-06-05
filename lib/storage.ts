@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { seedData } from "./seedData";
 import { supabase } from "./supabase";
 import type { BusinessSettings, Client, Employee, Event, EventItem, Product, Quote, QuoteItem, StudioData, StudioToolPhoto } from "./types";
@@ -71,6 +71,8 @@ export function useStudioData() {
   const [data, setData] = useState<StudioData>(seedData);
   const [ready, setReady] = useState(false);
   const [syncMode, setSyncMode] = useState<"local" | "supabase">("local");
+  const applyingRemoteData = useRef(false);
+  const lastSavedData = useRef("");
 
   useEffect(() => {
     let cancelled = false;
@@ -89,12 +91,15 @@ export function useStudioData() {
 
       const remoteData = await loadRemoteStudioData();
       const nextData = remoteData ?? localData;
+      const serializedData = JSON.stringify(nextData);
 
       if (!remoteData) {
         await saveRemoteStudioData(localData);
       }
 
       if (!cancelled) {
+        applyingRemoteData.current = Boolean(remoteData);
+        lastSavedData.current = serializedData;
         setData(nextData);
         saveStudioData(nextData);
         setSyncMode("supabase");
@@ -104,16 +109,52 @@ export function useStudioData() {
 
     loadData();
 
+    const channel = supabase
+      ?.channel("studio-state-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "studio_state", filter: `id=eq.${REMOTE_STATE_ID}` },
+        (payload) => {
+          if (payload.eventType === "DELETE") return;
+
+          const nextData = (payload.new as { data?: StudioData } | null)?.data;
+          if (!nextData) return;
+
+          const normalizedData = normalizeData(nextData);
+          const serializedData = JSON.stringify(normalizedData);
+
+          if (serializedData === lastSavedData.current) return;
+
+          applyingRemoteData.current = true;
+          lastSavedData.current = serializedData;
+          setData(normalizedData);
+          saveStudioData(normalizedData);
+        }
+      )
+      .subscribe();
+
     return () => {
       cancelled = true;
+      if (channel) {
+        supabase?.removeChannel(channel);
+      }
     };
   }, []);
 
   useEffect(() => {
-    if (ready) {
-      saveStudioData(data);
-      saveRemoteStudioData(data);
+    if (!ready) return;
+
+    if (applyingRemoteData.current) {
+      applyingRemoteData.current = false;
+      return;
     }
+
+    const serializedData = JSON.stringify(data);
+    if (serializedData === lastSavedData.current) return;
+
+    lastSavedData.current = serializedData;
+    saveStudioData(data);
+    saveRemoteStudioData(data);
   }, [data, ready]);
 
   const actions = useMemo(
