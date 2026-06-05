@@ -54,7 +54,7 @@ async function loadRemoteStudioData(): Promise<StudioData | null> {
 }
 
 async function saveRemoteStudioData(data: StudioData) {
-  if (!supabase) return;
+  if (!supabase) return false;
 
   const { error } = await supabase.from("studio_state").upsert({
     id: REMOTE_STATE_ID,
@@ -64,7 +64,16 @@ async function saveRemoteStudioData(data: StudioData) {
 
   if (error) {
     console.warn("Could not save studio state to Supabase", error.message);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("manuto-flow-sync-error", error.message);
+    }
+    return false;
   }
+
+  if (typeof window !== "undefined") {
+    window.localStorage.removeItem("manuto-flow-sync-error");
+  }
+  return true;
 }
 
 export function useStudioData() {
@@ -73,6 +82,20 @@ export function useStudioData() {
   const [syncMode, setSyncMode] = useState<"local" | "supabase">("local");
   const applyingRemoteData = useRef(false);
   const lastSavedData = useRef("");
+  const currentData = useRef<StudioData>(seedData);
+
+  function applyRemoteData(nextData: StudioData) {
+    const normalizedData = normalizeData(nextData);
+    const serializedData = JSON.stringify(normalizedData);
+
+    if (serializedData === JSON.stringify(currentData.current)) return;
+
+    applyingRemoteData.current = true;
+    lastSavedData.current = serializedData;
+    currentData.current = normalizedData;
+    setData(normalizedData);
+    saveStudioData(normalizedData);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -94,12 +117,18 @@ export function useStudioData() {
       const serializedData = JSON.stringify(nextData);
 
       if (!remoteData) {
-        await saveRemoteStudioData(localData);
+        const saved = await saveRemoteStudioData(localData);
+        if (saved) {
+          lastSavedData.current = JSON.stringify(localData);
+        }
       }
 
       if (!cancelled) {
         applyingRemoteData.current = Boolean(remoteData);
-        lastSavedData.current = serializedData;
+        if (remoteData) {
+          lastSavedData.current = serializedData;
+        }
+        currentData.current = nextData;
         setData(nextData);
         saveStudioData(nextData);
         setSyncMode("supabase");
@@ -108,6 +137,11 @@ export function useStudioData() {
     }
 
     loadData();
+
+    async function refreshFromCloud() {
+      const remoteData = await loadRemoteStudioData();
+      if (remoteData) applyRemoteData(remoteData);
+    }
 
     const channel = supabase
       ?.channel("studio-state-live")
@@ -120,24 +154,23 @@ export function useStudioData() {
           const nextData = (payload.new as { data?: StudioData } | null)?.data;
           if (!nextData) return;
 
-          const normalizedData = normalizeData(nextData);
-          const serializedData = JSON.stringify(normalizedData);
-
-          if (serializedData === lastSavedData.current) return;
-
-          applyingRemoteData.current = true;
-          lastSavedData.current = serializedData;
-          setData(normalizedData);
-          saveStudioData(normalizedData);
+          applyRemoteData(nextData);
         }
       )
       .subscribe();
+
+    const pollId = window.setInterval(refreshFromCloud, 5000);
+    window.addEventListener("focus", refreshFromCloud);
+    document.addEventListener("visibilitychange", refreshFromCloud);
 
     return () => {
       cancelled = true;
       if (channel) {
         supabase?.removeChannel(channel);
       }
+      window.clearInterval(pollId);
+      window.removeEventListener("focus", refreshFromCloud);
+      document.removeEventListener("visibilitychange", refreshFromCloud);
     };
   }, []);
 
@@ -152,9 +185,13 @@ export function useStudioData() {
     const serializedData = JSON.stringify(data);
     if (serializedData === lastSavedData.current) return;
 
-    lastSavedData.current = serializedData;
+    currentData.current = data;
     saveStudioData(data);
-    saveRemoteStudioData(data);
+    saveRemoteStudioData(data).then((saved) => {
+      if (saved) {
+        lastSavedData.current = serializedData;
+      }
+    });
   }, [data, ready]);
 
   const actions = useMemo(
