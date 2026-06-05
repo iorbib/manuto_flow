@@ -1,5 +1,11 @@
 create extension if not exists "uuid-ossp";
 
+create table if not exists studio_state (
+  id text primary key,
+  data jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
 create type event_status as enum (
   'lead',
   'quote_needed',

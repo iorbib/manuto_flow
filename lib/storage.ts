@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { seedData } from "./seedData";
+import { supabase } from "./supabase";
 import type { BusinessSettings, Client, Employee, Event, EventItem, Product, Quote, QuoteItem, StudioData, StudioToolPhoto } from "./types";
 
 const STORAGE_KEY = "manuto-flow-data-v2";
+const REMOTE_STATE_ID = "main";
 
 export function createId(prefix: string) {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -38,18 +40,79 @@ export function saveStudioData(data: StudioData) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
+async function loadRemoteStudioData(): Promise<StudioData | null> {
+  if (!supabase) return null;
+
+  const { data, error } = await supabase.from("studio_state").select("data").eq("id", REMOTE_STATE_ID).maybeSingle();
+
+  if (error) {
+    console.warn("Could not load studio state from Supabase", error.message);
+    return null;
+  }
+
+  return data?.data ? normalizeData(data.data as StudioData) : null;
+}
+
+async function saveRemoteStudioData(data: StudioData) {
+  if (!supabase) return;
+
+  const { error } = await supabase.from("studio_state").upsert({
+    id: REMOTE_STATE_ID,
+    data,
+    updated_at: new Date().toISOString()
+  });
+
+  if (error) {
+    console.warn("Could not save studio state to Supabase", error.message);
+  }
+}
+
 export function useStudioData() {
   const [data, setData] = useState<StudioData>(seedData);
   const [ready, setReady] = useState(false);
+  const [syncMode, setSyncMode] = useState<"local" | "supabase">("local");
 
   useEffect(() => {
-    setData(loadStudioData());
-    setReady(true);
+    let cancelled = false;
+
+    async function loadData() {
+      const localData = loadStudioData();
+
+      if (!supabase) {
+        if (!cancelled) {
+          setData(localData);
+          setSyncMode("local");
+          setReady(true);
+        }
+        return;
+      }
+
+      const remoteData = await loadRemoteStudioData();
+      const nextData = remoteData ?? localData;
+
+      if (!remoteData) {
+        await saveRemoteStudioData(localData);
+      }
+
+      if (!cancelled) {
+        setData(nextData);
+        saveStudioData(nextData);
+        setSyncMode("supabase");
+        setReady(true);
+      }
+    }
+
+    loadData();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
     if (ready) {
       saveStudioData(data);
+      saveRemoteStudioData(data);
     }
   }, [data, ready]);
 
@@ -121,7 +184,7 @@ export function useStudioData() {
     []
   );
 
-  return { data, ready, setData, ...actions };
+  return { data, ready, syncMode, setData, ...actions };
 }
 
 function normalizeData(value: StudioData): StudioData {
