@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { seedData } from "./seedData";
-import type { BusinessSettings, Client, Employee, Event, EventItem, Product, Quote, QuoteItem, StudioData } from "./types";
+import type { BusinessSettings, Client, Employee, Event, EventItem, Product, Quote, QuoteItem, StudioData, StudioToolPhoto } from "./types";
 
 const STORAGE_KEY = "manuto-flow-data-v2";
 
@@ -99,12 +99,22 @@ export function useStudioData() {
           ...current,
           events: current.events.filter((item) => item.id !== id),
           quotes: current.quotes.filter((item) => item.eventId !== id),
-          studioTasks: current.studioTasks.filter((item) => item.eventId !== id)
+          studioTasks: current.studioTasks.filter((item) => item.eventId !== id),
+          studioToolPhotos: current.studioToolPhotos.filter((item) => item.eventId !== id)
         })),
       addQuote: (quote: Quote) => setData((current) => ({ ...current, quotes: [quote, ...current.quotes] })),
       updateQuote: (quote: Quote) =>
         setData((current) => ({ ...current, quotes: current.quotes.map((item) => (item.id === quote.id ? quote : item)) })),
       deleteQuote: (id: string) => setData((current) => ({ ...current, quotes: current.quotes.filter((item) => item.id !== id) })),
+      addStudioToolPhoto: (photo: StudioToolPhoto) =>
+        setData((current) => ({ ...current, studioToolPhotos: [photo, ...(current.studioToolPhotos ?? [])] })),
+      updateStudioToolPhoto: (photo: StudioToolPhoto) =>
+        setData((current) => ({
+          ...current,
+          studioToolPhotos: (current.studioToolPhotos ?? []).map((item) => (item.id === photo.id ? photo : item))
+        })),
+      deleteStudioToolPhoto: (id: string) =>
+        setData((current) => ({ ...current, studioToolPhotos: (current.studioToolPhotos ?? []).filter((item) => item.id !== id) })),
       updateSettings: (businessSettings: BusinessSettings) => setData((current) => ({ ...current, businessSettings })),
       resetData: () => setData(seedData)
     }),
@@ -134,7 +144,14 @@ function normalizeData(value: StudioData): StudioData {
     products,
     employees: value.employees ?? seedData.employees,
     events: (value.events ?? seedData.events).map((event) => normalizeEvent(event)),
-    quotes
+    quotes,
+    studioToolPhotos: (value.studioToolPhotos ?? seedData.studioToolPhotos).map((photo) => ({
+      ...photo,
+      productName: photo.productName ?? "כלי",
+      quantity: photo.quantity ?? 1,
+      status: photo.status ?? "photographed",
+      note: photo.note ?? ""
+    }))
   };
 }
 

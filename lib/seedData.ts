@@ -9,6 +9,8 @@ import type {
   Quote,
   StudioData,
   StudioTask,
+  StudioToolPhoto,
+  StudioToolStatus,
   SupplierProduct
 } from "./types";
 
@@ -79,6 +81,53 @@ export const clientStatusLabels = {
   booked: "סגרה אירוע",
   inactive: "לא פעילה"
 };
+
+export const studioToolStatusLabels: Record<StudioToolStatus, string> = {
+  photographed: "צולם בסדנה",
+  needs_glaze: "צריך גלזורה",
+  glazed: "עבר גלזורה",
+  needs_firing: "צריך שריפה",
+  fired: "נשרף",
+  needs_packing: "צריך אריזה",
+  packed: "ארוז",
+  needs_delivery: "צריך משלוח/איסוף",
+  delivered: "נמסר",
+  closed: "סגור",
+  follow_up: "המשך טיפול",
+  compensation: "צריך פיצוי",
+  broken: "נשבר",
+  missing: "חסר"
+};
+
+export const studioToolStatusColors: Record<StudioToolStatus, string> = {
+  photographed: "bg-sky/70 text-sky-950",
+  needs_glaze: "bg-lavender/80 text-purple-950",
+  glazed: "bg-mint text-emerald-950",
+  needs_firing: "bg-coral/25 text-red-950",
+  fired: "bg-peach text-orange-950",
+  needs_packing: "bg-sand text-yellow-950",
+  packed: "bg-mint text-emerald-950",
+  needs_delivery: "bg-blush/70 text-rose-950",
+  delivered: "bg-emerald-100 text-emerald-900",
+  closed: "bg-stone-200 text-stone-800",
+  follow_up: "bg-peach text-orange-950",
+  compensation: "bg-red-100 text-red-900",
+  broken: "bg-red-100 text-red-900",
+  missing: "bg-red-100 text-red-900"
+};
+
+export const studioToolFlow: StudioToolStatus[] = [
+  "photographed",
+  "needs_glaze",
+  "glazed",
+  "needs_firing",
+  "fired",
+  "needs_packing",
+  "packed",
+  "needs_delivery",
+  "delivered",
+  "closed"
+];
 
 export const businessSettings: BusinessSettings = {
   vatRate: 0.18,
@@ -283,6 +332,8 @@ export const seedStudioTasks: StudioTask[] = [
   { id: "task_1", title: "לספור עבודות", eventId: "event_102", status: "open", dueDate: "2026-06-13" }
 ];
 
+export const seedStudioToolPhotos: StudioToolPhoto[] = [];
+
 export const seedSupplierProducts: SupplierProduct[] = [
   {
     id: "supplier_1",
@@ -306,6 +357,7 @@ export const seedData: StudioData = {
   quotes: seedQuotes,
   inventory: seedInventory,
   studioTasks: seedStudioTasks,
+  studioToolPhotos: seedStudioToolPhotos,
   supplierProducts: seedSupplierProducts,
   businessSettings,
   dailySupportMessages: ["היום לא צריך להספיק הכל. מספיק לסדר את הדבר הבא על השולחן, ואז להמשיך משם."]

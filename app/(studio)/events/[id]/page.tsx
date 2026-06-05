@@ -20,6 +20,7 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
   const client = data.clients.find((item) => item.id === event.clientId);
   const pricing = calculateEventPricing(event, data.employees, data.businessSettings.vatRate);
   const tasks = data.studioTasks.filter((task) => task.eventId === event.id);
+  const toolPhotos = data.studioToolPhotos.filter((photo) => photo.eventId === event.id);
   const employeeNames = event.assignments
     .map((assignment) => data.employees.find((employee) => employee.id === assignment.employeeId)?.name)
     .filter(Boolean)
@@ -30,7 +31,12 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
       <PageHeader
         title={event.title}
         description={`${client?.name || "ללא לקוח"} · ${event.customEventType || "ללא סוג חופשי"}`}
-        action={<InlineLink href="/events">עריכת אירועים</InlineLink>}
+        action={
+          <div className="flex flex-wrap gap-2">
+            <InlineLink href={`/tasks?eventId=${event.id}`}>צילום כלים</InlineLink>
+            <InlineLink href="/events">עריכת אירועים</InlineLink>
+          </div>
+        }
       />
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -81,6 +87,15 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
 
           <Card>
             <h2 className="mb-4 text-2xl font-black text-ink">מחכה בסטודיו</h2>
+            <div className="mb-4 rounded-3xl bg-mint/60 p-4">
+              <p className="font-black text-ink">גלריית כלים</p>
+              <p className="mt-1 text-sm font-bold text-clay">
+                {toolPhotos.length ? `${toolPhotos.length} תמונות שמורות לאירוע הזה` : "עוד אין תמונות כלים לאירוע הזה."}
+              </p>
+              <div className="mt-3">
+                <InlineLink href={`/tasks?eventId=${event.id}`}>{toolPhotos.length ? "כניסה לתיק סטודיו" : "צילום כלים בסוף סדנה"}</InlineLink>
+              </div>
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               {tasks.length ? (
                 tasks.map((task) => (

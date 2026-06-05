@@ -124,6 +124,33 @@ export type StudioTask = {
   dueDate: string;
 };
 
+export type StudioToolStatus =
+  | "photographed"
+  | "needs_glaze"
+  | "glazed"
+  | "needs_firing"
+  | "fired"
+  | "needs_packing"
+  | "packed"
+  | "needs_delivery"
+  | "delivered"
+  | "closed"
+  | "follow_up"
+  | "compensation"
+  | "broken"
+  | "missing";
+
+export type StudioToolPhoto = {
+  id: string;
+  eventId: string;
+  imageUrl: string;
+  productName: string;
+  quantity: number;
+  status: StudioToolStatus;
+  note: string;
+  createdAt: string;
+};
+
 export type Quote = {
   id: string;
   clientId: string;
@@ -181,6 +208,7 @@ export type StudioData = {
   quotes: Quote[];
   inventory: InventoryItem[];
   studioTasks: StudioTask[];
+  studioToolPhotos: StudioToolPhoto[];
   supplierProducts: SupplierProduct[];
   businessSettings: BusinessSettings;
   dailySupportMessages: string[];
