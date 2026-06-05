@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { seedData } from "./seedData";
-import type { Client, Employee, Event, Product, Quote, StudioData } from "./types";
+import type { BusinessSettings, Client, Employee, Event, Product, Quote, QuoteItem, StudioData } from "./types";
 
 const STORAGE_KEY = "manuto-flow-data-v2";
 
@@ -73,7 +73,10 @@ export function useStudioData() {
           ...current,
           products: current.products.filter((item) => item.id !== id),
           events: current.events.map((event) => (event.productId === id ? { ...event, productId: "" } : event)),
-          quotes: current.quotes.map((quote) => (quote.productId === id ? { ...quote, productId: "" } : quote))
+          quotes: current.quotes.map((quote) => ({
+            ...quote,
+            items: (quote.items ?? []).map((item) => (item.productId === id ? { ...item, productId: "" } : item))
+          }))
         })),
       addEmployee: (employee: Employee) => setData((current) => ({ ...current, employees: [employee, ...current.employees] })),
       updateEmployee: (employee: Employee) =>
@@ -99,6 +102,7 @@ export function useStudioData() {
       updateQuote: (quote: Quote) =>
         setData((current) => ({ ...current, quotes: current.quotes.map((item) => (item.id === quote.id ? quote : item)) })),
       deleteQuote: (id: string) => setData((current) => ({ ...current, quotes: current.quotes.filter((item) => item.id !== id) })),
+      updateSettings: (businessSettings: BusinessSettings) => setData((current) => ({ ...current, businessSettings })),
       resetData: () => setData(seedData)
     }),
     []
@@ -108,13 +112,47 @@ export function useStudioData() {
 }
 
 function normalizeData(value: StudioData): StudioData {
+  const products = (value.products ?? seedData.products).map((product) => ({
+    ...product,
+    imageUrl: product.imageUrl ?? ""
+  }));
+
+  const clients = (value.clients ?? seedData.clients).map((client) => ({
+    ...client,
+    clientStatus: client.clientStatus ?? "interested"
+  }));
+
+  const quotes = (value.quotes ?? seedData.quotes).map((quote) => normalizeQuote(quote));
+
   return {
     ...seedData,
     ...value,
-    clients: value.clients ?? seedData.clients,
-    products: value.products ?? seedData.products,
+    clients,
+    products,
     employees: value.employees ?? seedData.employees,
     events: value.events ?? seedData.events,
-    quotes: value.quotes ?? seedData.quotes
+    quotes
+  };
+}
+
+function normalizeQuote(quote: Quote & Partial<{
+  participantCount: number;
+  productId: string;
+  pricePerParticipantIncVat: number;
+  unitCostExVat: number;
+}>): Quote {
+  if (quote.items?.length) return quote;
+
+  const legacyItem: QuoteItem = {
+    id: createId("quote_item"),
+    productId: quote.productId ?? seedData.products[0]?.id ?? "",
+    quantity: quote.participantCount ?? 1,
+    pricePerParticipantIncVat: quote.pricePerParticipantIncVat ?? 0,
+    unitCostExVat: quote.unitCostExVat ?? 0
+  };
+
+  return {
+    ...quote,
+    items: [legacyItem]
   };
 }

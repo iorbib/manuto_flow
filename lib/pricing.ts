@@ -57,10 +57,10 @@ export function calculateEventPricing(event: Event, product: Product, employees:
   });
 }
 
-export function calculateQuotePricing(quote: Quote) {
-  const revenueIncVat = quote.participantCount * quote.pricePerParticipantIncVat;
-  const revenueExVat = revenueIncVat / 1.18;
-  const ceramicCost = quote.participantCount * quote.unitCostExVat;
+export function calculateQuotePricing(quote: Quote, vatRate = businessSettings.vatRate) {
+  const revenueIncVat = quote.items.reduce((sum, item) => sum + item.quantity * item.pricePerParticipantIncVat, 0);
+  const revenueExVat = revenueIncVat / (1 + vatRate);
+  const ceramicCost = quote.items.reduce((sum, item) => sum + item.quantity * item.unitCostExVat, 0);
   const employeeCost = quote.employeeHours * quote.employeeHourlyRate;
   const directCosts =
     ceramicCost +

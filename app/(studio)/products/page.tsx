@@ -15,6 +15,7 @@ const emptyProduct: Product = {
   recommendedParticipantPriceIncVat: 100,
   supplierName: "",
   supplierUrl: "",
+  imageUrl: "",
   isActive: true
 };
 
@@ -77,6 +78,26 @@ export default function ProductsPage() {
             <Input label="מחיר מומלץ למשתתף כולל מע״מ" type="number" value={String(form.recommendedParticipantPriceIncVat)} onChange={(value) => setForm({ ...form, recommendedParticipantPriceIncVat: Number(value) })} />
             <Input label="ספק" value={form.supplierName} onChange={(value) => setForm({ ...form, supplierName: value })} />
             <Input label="קישור ספק" value={form.supplierUrl} onChange={(value) => setForm({ ...form, supplierUrl: value })} />
+            <label className="md:col-span-2">
+              <span className="mb-2 block text-sm font-black text-clay">תמונה של הפריט</span>
+              <div className="grid gap-3 rounded-3xl bg-white/60 p-4 sm:grid-cols-[140px_1fr] sm:items-center">
+                <div className="grid aspect-square place-items-center overflow-hidden rounded-3xl bg-peach/40">
+                  {form.imageUrl ? <img src={form.imageUrl} alt={form.name || "תמונת פריט"} className="h-full w-full object-cover" /> : <span className="text-sm font-black text-clay">אין תמונה</span>}
+                </div>
+                <input
+                  className="input"
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = () => setForm((current) => ({ ...current, imageUrl: String(reader.result) }));
+                    reader.readAsDataURL(file);
+                  }}
+                />
+              </div>
+            </label>
             <label className="flex items-center gap-3 rounded-3xl bg-white/60 p-4 font-black text-clay">
               <input type="checkbox" checked={form.isActive} onChange={(event) => setForm({ ...form, isActive: event.target.checked })} />
               פעיל
@@ -96,6 +117,9 @@ export default function ProductsPage() {
           {products.map((product) => (
             <Card key={product.id}>
               <div className="flex items-start justify-between gap-4">
+                <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-3xl bg-peach/45">
+                  {product.imageUrl ? <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" /> : <span className="text-xs font-black text-clay">תמונה</span>}
+                </div>
                 <div>
                   <h2 className="text-2xl font-black text-ink">{product.name}</h2>
                   <p className="mt-1 font-bold text-clay">{product.type || "ללא סוג"}</p>

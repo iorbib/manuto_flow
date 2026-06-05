@@ -72,6 +72,14 @@ export const eventTypeLabels = {
   other: "אחר"
 };
 
+export const clientStatusLabels = {
+  interested: "מתעניינת",
+  follow_up: "לחזור אליה",
+  proposal: "בהצעה",
+  booked: "סגרה אירוע",
+  inactive: "לא פעילה"
+};
+
 export const businessSettings: BusinessSettings = {
   vatRate: 0.18,
   defaultEventHours: 4,
@@ -91,6 +99,7 @@ export const seedProducts: Product[] = [
     recommendedParticipantPriceIncVat: 90,
     supplierName: "Minerco",
     supplierUrl: "",
+    imageUrl: "",
     isActive: true
   },
   {
@@ -101,6 +110,7 @@ export const seedProducts: Product[] = [
     recommendedParticipantPriceIncVat: 100,
     supplierName: "Minerco",
     supplierUrl: "",
+    imageUrl: "",
     isActive: true
   },
   {
@@ -111,6 +121,7 @@ export const seedProducts: Product[] = [
     recommendedParticipantPriceIncVat: 100,
     supplierName: "Minerco",
     supplierUrl: "",
+    imageUrl: "",
     isActive: true
   },
   {
@@ -121,6 +132,7 @@ export const seedProducts: Product[] = [
     recommendedParticipantPriceIncVat: 120,
     supplierName: "Minerco",
     supplierUrl: "",
+    imageUrl: "",
     isActive: true
   }
 ];
@@ -139,6 +151,7 @@ export const seedClients: Client[] = [
     phone: "052-441-0091",
     email: "maya@example.com",
     clientType: "company",
+    clientStatus: "booked",
     notes: "יום גיבוש לצוות מוצר, יש מים ושולחנות במקום."
   },
   {
@@ -148,6 +161,7 @@ export const seedClients: Client[] = [
     phone: "054-923-7711",
     email: "roni@example.com",
     clientType: "therapy_center",
+    clientStatus: "proposal",
     notes: "קבוצה טיפולית רגועה, לבוא עם עוד זמן להסבר."
   },
   {
@@ -157,6 +171,7 @@ export const seedClients: Client[] = [
     phone: "050-234-4412",
     email: "dana@example.com",
     clientType: "private",
+    clientStatus: "interested",
     notes: "יום הולדת 10 בחצר."
   }
 ];
@@ -220,10 +235,15 @@ export const seedQuotes: Quote[] = [
     id: "quote_101",
     clientId: "client_therapy",
     eventId: "event_102",
-    participantCount: 18,
-    productId: "prod_cup",
-    pricePerParticipantIncVat: 100,
-    unitCostExVat: 12,
+    items: [
+      {
+        id: "quote_item_101",
+        productId: "prod_cup",
+        quantity: 18,
+        pricePerParticipantIncVat: 100,
+        unitCostExVat: 12
+      }
+    ],
     employeeId: "emp_alona",
     employeeHours: 4,
     employeeHourlyRate: 0,

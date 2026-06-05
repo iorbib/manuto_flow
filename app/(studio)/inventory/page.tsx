@@ -28,9 +28,14 @@ export default function InventoryPage() {
             return (
               <Card key={item.id}>
                 <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-2xl font-black text-ink">{product?.name || "פריט שנמחק"}</h2>
-                    <p className="mt-1 font-bold text-clay">עלות ממוצעת {formatCurrency(item.averageUnitCostExVat)} ללא מע״מ</p>
+                  <div className="flex gap-4">
+                    <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-3xl bg-peach/45">
+                      {product?.imageUrl ? <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" /> : <span className="text-xs font-black text-clay">תמונה</span>}
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-black text-ink">{product?.name || "פריט שנמחק"}</h2>
+                      <p className="mt-1 font-bold text-clay">עלות ממוצעת {formatCurrency(item.averageUnitCostExVat)} ללא מע״מ</p>
+                    </div>
                   </div>
                   <PackageCheck className="text-coral" />
                 </div>

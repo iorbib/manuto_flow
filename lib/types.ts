@@ -32,6 +32,7 @@ export type Client = {
   phone: string;
   email: string;
   clientType: "company" | "therapy_center" | "school" | "private" | "community" | "other";
+  clientStatus: "interested" | "follow_up" | "proposal" | "booked" | "inactive";
   notes: string;
 };
 
@@ -43,6 +44,7 @@ export type Product = {
   recommendedParticipantPriceIncVat: number;
   supplierName: string;
   supplierUrl: string;
+  imageUrl: string;
   isActive: boolean;
 };
 
@@ -116,10 +118,7 @@ export type Quote = {
   id: string;
   clientId: string;
   eventId: string;
-  participantCount: number;
-  productId: string;
-  pricePerParticipantIncVat: number;
-  unitCostExVat: number;
+  items: QuoteItem[];
   employeeId: string;
   employeeHours: number;
   employeeHourlyRate: number;
@@ -130,6 +129,14 @@ export type Quote = {
   logisticsCost: number;
   status: "draft" | "sent" | "approved";
   createdAt: string;
+};
+
+export type QuoteItem = {
+  id: string;
+  productId: string;
+  quantity: number;
+  pricePerParticipantIncVat: number;
+  unitCostExVat: number;
 };
 
 export type SupplierProduct = {

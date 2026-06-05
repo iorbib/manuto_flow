@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { Edit3, Plus, Search, Trash2 } from "lucide-react";
 import { ActionButton, Card, EmptyState, PageHeader } from "@/components/ui";
+import { clientStatusLabels } from "@/lib/seedData";
 import { createId, useStudioData } from "@/lib/storage";
 import type { Client } from "@/lib/types";
 
@@ -13,6 +14,7 @@ const emptyClient: Client = {
   phone: "",
   email: "",
   clientType: "company",
+  clientStatus: "interested",
   notes: ""
 };
 
@@ -26,7 +28,7 @@ export default function ClientsPage() {
     const value = query.trim().toLowerCase();
     if (!value) return data.clients;
     return data.clients.filter((client) =>
-      [client.name, client.contactName, client.phone, client.email, client.notes].some((field) => field.toLowerCase().includes(value))
+      [client.name, client.contactName, client.phone, client.email, client.notes, clientStatusLabels[client.clientStatus]].some((field) => field.toLowerCase().includes(value))
     );
   }, [data.clients, query]);
 
@@ -89,6 +91,16 @@ export default function ClientsPage() {
                 <option value="other">אחר</option>
               </select>
             </label>
+            <label>
+              <span className="mb-2 block text-sm font-black text-clay">סטטוס לקוח</span>
+              <select className="input" value={form.clientStatus} onChange={(event) => setForm({ ...form, clientStatus: event.target.value as Client["clientStatus"] })}>
+                {Object.entries(clientStatusLabels).map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="md:col-span-2">
               <span className="mb-2 block text-sm font-black text-clay">הערות</span>
               <textarea className="input min-h-28" value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} />
@@ -111,6 +123,7 @@ export default function ClientsPage() {
                 <div>
                   <h2 className="text-2xl font-black text-ink">{client.name}</h2>
                   <p className="mt-1 font-bold text-clay">{client.contactName || "אין איש קשר"}</p>
+                  <p className="mt-2 inline-flex rounded-full bg-mint/70 px-3 py-1 text-sm font-black text-emerald-950">{clientStatusLabels[client.clientStatus]}</p>
                 </div>
                 <div className="flex gap-2">
                   <ActionButton

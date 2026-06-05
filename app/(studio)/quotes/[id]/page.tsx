@@ -13,14 +13,14 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
   }
 
   const event = data.events.find((item) => item.id === quote.eventId);
-  const product = data.products.find((item) => item.id === quote.productId);
-  const pricing = calculateQuotePricing(quote);
+  const pricing = calculateQuotePricing(quote, data.businessSettings.vatRate);
+  const totalItems = quote.items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <>
       <PageHeader title={`הצעה · ${event?.title || "ללא אירוע"}`} description="פירוט הצעה מתוך הדאטה השמור." action={<InlineLink href="/quotes">עריכת הצעות</InlineLink>} />
       <div className="grid gap-4 md:grid-cols-4">
-        <StatCard label="מחיר למשתתף" value={formatCurrency(quote.pricePerParticipantIncVat)} tone="bg-peach" />
+        <StatCard label="כמות פריטים" value={`${totalItems}`} tone="bg-peach" />
         <StatCard label="סה״כ כולל מע״מ" value={formatCurrency(pricing.revenueIncVat)} tone="bg-coral" />
         <StatCard label="נשאר לפני מסים ושאר הוצאות" value={formatCurrency(pricing.grossProfit)} tone="bg-mint" />
         <StatCard label="כמה אוויר נשאר" value={formatPercent(pricing.margin)} tone="bg-sky" />
@@ -34,9 +34,25 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
             </div>
           ))}
         </div>
-        <p className="mt-5 rounded-3xl bg-peach/60 p-5 font-bold leading-8 text-ink">
-          ההצעה מבוססת על {quote.participantCount} משתתפים, מוצר: {product?.name || "לא נבחר"}, ועלות יחידה של {formatCurrency(quote.unitCostExVat)} לפני מע״מ.
-        </p>
+        <div className="mt-5 overflow-hidden rounded-3xl bg-peach/60">
+          <div className="grid grid-cols-[1.4fr_0.7fr_1fr_1fr] gap-3 border-b border-white/70 p-4 text-sm font-black text-clay">
+            <span>פריט</span>
+            <span>כמות</span>
+            <span>מחיר ללקוח</span>
+            <span>עלות</span>
+          </div>
+          {quote.items.map((line) => {
+            const product = data.products.find((item) => item.id === line.productId);
+            return (
+              <div key={line.id} className="grid grid-cols-[1.4fr_0.7fr_1fr_1fr] gap-3 border-b border-white/60 p-4 text-sm font-bold text-ink last:border-b-0">
+                <span>{product?.name || "פריט לא נבחר"}</span>
+                <span>{line.quantity}</span>
+                <span>{formatCurrency(line.pricePerParticipantIncVat)}</span>
+                <span>{formatCurrency(line.unitCostExVat)}</span>
+              </div>
+            );
+          })}
+        </div>
       </Card>
     </>
   );

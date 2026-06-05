@@ -21,8 +21,10 @@ export default function QuotesPage() {
     return data.quotes.filter((quote) => {
       const client = data.clients.find((item) => item.id === quote.clientId);
       const event = data.events.find((item) => item.id === quote.eventId);
-      const product = data.products.find((item) => item.id === quote.productId);
-      return [client?.name ?? "", event?.title ?? "", product?.name ?? ""].some((field) => field.toLowerCase().includes(value));
+      const productNames = quote.items
+        .map((line) => data.products.find((item) => item.id === line.productId)?.name ?? "")
+        .join(" ");
+      return [client?.name ?? "", event?.title ?? "", productNames].some((field) => field.toLowerCase().includes(value));
     });
   }, [data.clients, data.events, data.products, data.quotes, query]);
 
@@ -75,15 +77,19 @@ export default function QuotesPage() {
           {filteredQuotes.map((quote) => {
             const client = data.clients.find((item) => item.id === quote.clientId);
             const event = data.events.find((item) => item.id === quote.eventId);
-            const product = data.products.find((item) => item.id === quote.productId);
-            const pricing = calculateQuotePricing(quote);
+            const pricing = calculateQuotePricing(quote, data.businessSettings.vatRate);
+            const totalItems = quote.items.reduce((sum, item) => sum + item.quantity, 0);
+            const productNames = quote.items
+              .map((line) => data.products.find((item) => item.id === line.productId)?.name ?? "פריט לא נבחר")
+              .slice(0, 3)
+              .join(", ");
 
             return (
               <Card key={quote.id}>
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h2 className="text-2xl font-black text-ink">{event?.title || "הצעה ללא אירוע"}</h2>
-                    <p className="mt-1 font-bold text-clay">{client?.name || "ללא לקוח"} · {product?.name || "ללא פריט"}</p>
+                    <p className="mt-1 font-bold text-clay">{client?.name || "ללא לקוח"} · {productNames || "ללא פריטים"}</p>
                   </div>
                   <div className="flex gap-2">
                     <ActionButton tone="quiet" onClick={() => { setEditingQuote(quote); setIsBuilderOpen(true); }}>
@@ -99,7 +105,7 @@ export default function QuotesPage() {
                   <Mini label="כמה אוויר נשאר" value={formatPercent(pricing.margin)} />
                 </div>
                 <p className="mt-4 font-bold text-clay">
-                  {quote.participantCount} משתתפים · {formatCurrency(quote.pricePerParticipantIncVat)} למשתתף
+                  {quote.items.length} שורות · {totalItems} יחידות
                 </p>
               </Card>
             );

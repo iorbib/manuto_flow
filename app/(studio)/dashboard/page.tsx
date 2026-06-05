@@ -6,6 +6,8 @@ import { ActionButton, Card, InlineLink, PageHeader, StatCard } from "@/componen
 import { formatCurrency } from "@/lib/pricing";
 import { useStudioData } from "@/lib/storage";
 
+const manutoLogoUrl = "https://manuto.co.il/wp-content/uploads/2023/04/manuto_logo_pink_black-e1703362069976.png";
+
 export default function DashboardPage() {
   const { data } = useStudioData();
   const today = new Date().toISOString().slice(0, 10);
@@ -20,13 +22,16 @@ export default function DashboardPage() {
 
   return (
     <>
+      <div className="mb-5 flex items-center justify-center lg:justify-start">
+        <img src={manutoLogoUrl} alt="Manuto" className="h-auto w-48 max-w-[70vw]" />
+      </div>
       <PageHeader title="היום במנותו" description="דשבורד שמחובר לדאטה ששמרת: אירועים, הצעות, מלאי וסטודיו." />
 
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard label="אירועים" value={`${data.events.length}`} tone="bg-coral" />
         <StatCard label="הצעות פתוחות" value={`${openQuotes.length}`} tone="bg-lavender" />
         <StatCard label="פריטים" value={`${data.products.length}`} tone="bg-mint" />
-        <StatCard label="עובדות פעילות" value={`${data.employees.filter((employee) => employee.isActive).length}`} tone="bg-sky" />
+        <StatCard label="לקוחות מתעניינים" value={`${data.clients.filter((client) => client.clientStatus === "interested").length}`} tone="bg-sky" />
       </div>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
@@ -82,7 +87,7 @@ export default function DashboardPage() {
                 return (
                   <div key={quote.id} className="rounded-3xl bg-white/60 p-4">
                     <p className="font-black text-ink">{event?.title || "הצעה ללא אירוע"}</p>
-                    <p className="mt-1 text-sm font-bold text-clay">{formatCurrency(quote.participantCount * quote.pricePerParticipantIncVat)}</p>
+                    <p className="mt-1 text-sm font-bold text-clay">{formatCurrency(quote.items.reduce((sum, item) => sum + item.quantity * item.pricePerParticipantIncVat, 0))}</p>
                   </div>
                 );
               })}
