@@ -63,8 +63,16 @@ export default function EmployeesPage() {
     [data.employeeWorkLogs]
   );
 
+  const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
+  const currentMonthEvents = useMemo(
+    () =>
+      data.events
+        .filter((event) => event.date.startsWith(currentMonth) && event.status !== "cancelled")
+        .sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`)),
+    [currentMonth, data.events]
+  );
+
   const monthSummary = useMemo(() => {
-    const currentMonth = new Date().toISOString().slice(0, 7);
     return data.employees.map((employee) => {
       const employeeLogs = workLogs.filter((log) => log.employeeId === employee.id && log.date.startsWith(currentMonth));
       const hours = employeeLogs.reduce((sum, log) => sum + log.hours, 0);
@@ -130,6 +138,68 @@ export default function EmployeesPage() {
           </div>
         }
       />
+
+      <Card className="mb-5">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-sm font-black text-clay">לוח צוות חודשי</p>
+            <h2 className="text-2xl font-black text-ink">אירועי {formatMonthLabel(currentMonth)}</h2>
+          </div>
+          <span className="rounded-full bg-mint px-4 py-2 text-sm font-black text-emerald-950">{currentMonthEvents.length} אירועים</span>
+        </div>
+        {currentMonthEvents.length ? (
+          <div className="space-y-3">
+            {currentMonthEvents.map((studioEvent) => {
+              const assignedEmployees = studioEvent.assignments
+                .map((assignment) => data.employees.find((employee) => employee.id === assignment.employeeId))
+                .filter((employee): employee is Employee => Boolean(employee));
+              const loggedHours = workLogs.filter((log) => log.eventId === studioEvent.id).reduce((sum, log) => sum + log.hours, 0);
+
+              return (
+                <div key={studioEvent.id} className="rounded-[24px] bg-white/60 p-4">
+                  <div className="grid gap-3 lg:grid-cols-[1.3fr_1fr_1fr_auto] lg:items-center">
+                    <div>
+                      <h3 className="text-xl font-black text-ink">{studioEvent.title}</h3>
+                      <p className="mt-1 text-sm font-bold text-clay">{formatDate(studioEvent.date)} · {studioEvent.startTime || "שעה לא צוינה"}-{studioEvent.endTime || ""}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-black text-clay">איפה</p>
+                      <p className="font-bold text-ink">{studioEvent.address || "לא צוינה כתובת"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-black text-clay">מי עובדת</p>
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        {assignedEmployees.length ? (
+                          assignedEmployees.map((employee) => (
+                            <button
+                              key={employee.id}
+                              type="button"
+                              onClick={() => openWorkLogForm(employee, studioEvent.id)}
+                              className="rounded-full bg-peach/70 px-3 py-1 text-sm font-black text-ink"
+                            >
+                              {employee.name}
+                            </button>
+                          ))
+                        ) : (
+                          <span className="rounded-full bg-white/80 px-3 py-1 text-sm font-black text-clay">אין שיבוץ</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 lg:justify-end">
+                      <span className="rounded-full bg-white/80 px-3 py-1 text-sm font-black text-clay">{formatNumber(loggedHours)} ש׳ נרשמו</span>
+                      <ActionButton tone="quiet" onClick={() => openWorkLogForm(assignedEmployees[0], studioEvent.id)}>
+                        <Plus size={16} />
+                      </ActionButton>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <EmptyState title="אין אירועים החודש" body="כשיהיו אירועים בחודש הנוכחי, הם יופיעו כאן עם שיבוץ עובדות, שעה וכתובת." />
+        )}
+      </Card>
 
       <div className="mb-5 grid gap-4 md:grid-cols-3">
         {monthSummary.map(({ employee, hours, cost, logs }) => (
@@ -347,4 +417,9 @@ function formatNumber(value: number) {
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString("he-IL", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function formatMonthLabel(value: string) {
+  const [year, month] = value.split("-").map(Number);
+  return new Date(year, month - 1, 1).toLocaleDateString("he-IL", { month: "long", year: "numeric" });
 }
