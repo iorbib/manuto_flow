@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  CalendarClock,
   CalendarDays,
   ClipboardList,
   Home,
@@ -21,6 +22,7 @@ import { signOut } from "@/lib/auth";
 const navigation = [
   { href: "/dashboard", label: "היום", icon: Home },
   { href: "/calendar", label: "יומן", icon: CalendarDays },
+  { href: "/schedule", label: "סידור", icon: CalendarClock },
   { href: "/events", label: "אירועים", icon: Paintbrush },
   { href: "/quotes", label: "הצעות", icon: ScrollText },
   { href: "/clients", label: "לקוחות", icon: Users },
