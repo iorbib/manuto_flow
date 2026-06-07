@@ -24,6 +24,7 @@ export default function ProductsPage() {
   const [query, setQuery] = useState("");
   const [form, setForm] = useState<Product>(emptyProduct);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const vatMultiplier = 1 + data.businessSettings.vatRate;
 
   const products = useMemo(() => {
     const value = query.trim().toLowerCase();
@@ -74,7 +75,12 @@ export default function ProductsPage() {
           <form onSubmit={submitProduct} className="grid gap-4 md:grid-cols-2">
             <Input label="שם פריט" value={form.name} onChange={(value) => setForm({ ...form, name: value })} required />
             <Input label="סוג" value={form.type} onChange={(value) => setForm({ ...form, type: value })} />
-            <Input label="עלות ממוצעת לפני מע״מ" type="number" value={String(form.averageUnitCostExVat)} onChange={(value) => setForm({ ...form, averageUnitCostExVat: Number(value) })} />
+            <Input
+              label="עלות ממוצעת כולל מע״מ"
+              type="number"
+              value={String(roundMoney(form.averageUnitCostExVat * vatMultiplier))}
+              onChange={(value) => setForm({ ...form, averageUnitCostExVat: roundMoney(Number(value) / vatMultiplier) })}
+            />
             <Input label="מחיר מומלץ למשתתף כולל מע״מ" type="number" value={String(form.recommendedParticipantPriceIncVat)} onChange={(value) => setForm({ ...form, recommendedParticipantPriceIncVat: Number(value) })} />
             <Input label="ספק" value={form.supplierName} onChange={(value) => setForm({ ...form, supplierName: value })} />
             <Input label="קישור ספק" value={form.supplierUrl} onChange={(value) => setForm({ ...form, supplierUrl: value })} />
@@ -134,7 +140,7 @@ export default function ProductsPage() {
                 </div>
               </div>
               <div className="mt-5 grid grid-cols-2 gap-3">
-                <Mini label="עלות לפני מע״מ" value={formatCurrency(product.averageUnitCostExVat)} />
+                <Mini label="עלות כולל מע״מ" value={formatCurrency(product.averageUnitCostExVat * vatMultiplier)} />
                 <Mini label="מחיר מומלץ" value={formatCurrency(product.recommendedParticipantPriceIncVat)} />
               </div>
               <p className="mt-4 font-bold text-clay">ספק: {product.supplierName || "לא הוגדר"}</p>
@@ -152,6 +158,10 @@ export default function ProductsPage() {
       )}
     </>
   );
+}
+
+function roundMoney(value: number) {
+  return Math.round((Number.isFinite(value) ? value : 0) * 100) / 100;
 }
 
 function Input({ label, value, onChange, type = "text", required = false }: { label: string; value: string; onChange: (value: string) => void; type?: string; required?: boolean }) {

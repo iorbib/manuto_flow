@@ -53,6 +53,7 @@ export default function EventsPage() {
   const [statusFilter, setStatusFilter] = useState<EventStatus | "all">("all");
   const [form, setForm] = useState<Event>(() => createEmptyEvent());
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const vatMultiplier = 1 + data.businessSettings.vatRate;
 
   const filteredEvents = useMemo(() => {
     const value = query.trim().toLowerCase();
@@ -242,7 +243,11 @@ export default function EventsPage() {
                       </label>
                       <NumberInput label="כמות לאירוע" value={item.quantity} onChange={(value) => updateItem(item.id, { quantity: value })} />
                       <NumberInput label="מחיר לכלי ללקוח" value={item.pricePerItemIncVat} onChange={(value) => updateItem(item.id, { pricePerItemIncVat: value })} />
-                      <NumberInput label="עלות כלי" value={item.unitCostExVat} onChange={(value) => updateItem(item.id, { unitCostExVat: value })} />
+                      <NumberInput
+                        label="עלות כלי כולל מע״מ"
+                        value={roundMoney(item.unitCostExVat * vatMultiplier)}
+                        onChange={(value) => updateItem(item.id, { unitCostExVat: roundMoney(value / vatMultiplier) })}
+                      />
                     </div>
                     <p className="mt-3 text-sm font-black text-clay">
                       הכנסה מהשורה: {formatCurrency(item.quantity * item.pricePerItemIncVat)}
@@ -362,6 +367,10 @@ export default function EventsPage() {
       )}
     </>
   );
+}
+
+function roundMoney(value: number) {
+  return Math.round((Number.isFinite(value) ? value : 0) * 100) / 100;
 }
 
 function Input({ label, value, onChange, type = "text", required = false }: { label: string; value: string; onChange: (value: string) => void; type?: string; required?: boolean }) {

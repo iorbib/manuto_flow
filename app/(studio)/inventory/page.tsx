@@ -13,6 +13,7 @@ export default function InventoryPage() {
   const { data, updateInventoryItem } = useStudioData();
   const today = new Date().toISOString().slice(0, 10);
   const activeProducts = data.products.filter((product) => product.isActive);
+  const vatMultiplier = 1 + data.businessSettings.vatRate;
 
   const inventoryRows = activeProducts
     .map((product) => {
@@ -110,12 +111,12 @@ export default function InventoryPage() {
                   />
                 </label>
                 <label className="grid gap-2 text-sm font-black text-clay">
-                  עלות ממוצעת ללא מע״מ
+                  עלות ממוצעת כולל מע״מ
                   <input
                     type="number"
                     min="0"
-                    value={inventory.averageUnitCostExVat}
-                    onChange={(event) => saveInventoryPatch(inventory, { averageUnitCostExVat: Number(event.target.value) || 0 })}
+                    value={roundMoney(inventory.averageUnitCostExVat * vatMultiplier)}
+                    onChange={(event) => saveInventoryPatch(inventory, { averageUnitCostExVat: roundMoney((Number(event.target.value) || 0) / vatMultiplier) })}
                     className="rounded-3xl border border-clay/15 bg-white/80 px-4 py-3 text-lg font-black text-ink outline-none focus:border-coral"
                   />
                 </label>
@@ -194,6 +195,10 @@ export default function InventoryPage() {
       </Card>
     </>
   );
+}
+
+function roundMoney(value: number) {
+  return Math.round((Number.isFinite(value) ? value : 0) * 100) / 100;
 }
 
 function createInventoryItem(product: Product): InventoryItem {
