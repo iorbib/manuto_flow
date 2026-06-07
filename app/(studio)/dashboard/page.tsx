@@ -5,8 +5,10 @@ import { AlertTriangle, CalendarClock, ClipboardCheck, Heart, PackageSearch } fr
 import { ActionButton, Card, InlineLink, PageHeader, StatCard } from "@/components/ui";
 import { formatCurrency } from "@/lib/pricing";
 import { useStudioData } from "@/lib/storage";
+import type { Event } from "@/lib/types";
 
 const manutoLogoUrl = "https://manuto.co.il/wp-content/uploads/2023/04/manuto_logo_pink_black-e1703362069976.png";
+const lowStockThreshold = 10;
 
 export default function DashboardPage() {
   const { data } = useStudioData();
@@ -16,7 +18,21 @@ export default function DashboardPage() {
       .filter((event) => event.date >= today)
       .sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`))[0] ?? data.events[0];
   const openQuotes = data.quotes.filter((quote) => quote.status !== "approved");
-  const lowInventory = data.inventory.filter((item) => item.quantityOnHand - item.quantityReserved <= item.reorderThreshold);
+  const lowInventory = data.products
+    .filter((product) => product.isActive)
+    .map((product) => {
+      const inventory = data.inventory.find((item) => item.productId === product.id);
+      const reservedQuantity = getReservedQuantity(data.events, product.id, today);
+      const quantityOnHand = inventory?.quantityOnHand ?? 0;
+
+      return {
+        product,
+        reservedQuantity,
+        availableQuantity: quantityOnHand - reservedQuantity
+      };
+    })
+    .filter((item) => item.availableQuantity < lowStockThreshold)
+    .sort((first, second) => first.availableQuantity - second.availableQuantity);
   const studioEvents = data.events.filter((event) => ["completed", "studio_work", "glazing", "firing", "packing"].includes(event.status));
   const dailySupportMessage = data.dailySupportMessages[0] ?? "בואי נתחיל בדבר הבא שעל השולחן.";
 
@@ -110,14 +126,13 @@ export default function DashboardPage() {
           {lowInventory.length ? (
             <div className="space-y-3">
               {lowInventory.map((item) => {
-                const product = data.products.find((candidate) => candidate.id === item.productId);
-                const available = item.quantityOnHand - item.quantityReserved;
                 return (
-                  <div key={item.id} className="flex items-center justify-between rounded-3xl bg-white/60 p-4 font-bold">
-                    <span>{product?.name || "פריט שנמחק"}</span>
+                  <div key={item.product.id} className="flex items-center justify-between rounded-3xl bg-white/60 p-4 font-bold">
+                    <span>{item.product.name}</span>
                     <span className="inline-flex items-center gap-2 text-clay">
                       <AlertTriangle size={17} />
-                      {available} פנוי
+                      {item.availableQuantity} פנוי
+                      {item.reservedQuantity ? ` · ${item.reservedQuantity} שמורים` : ""}
                     </span>
                   </div>
                 );
@@ -145,4 +160,12 @@ export default function DashboardPage() {
       </div>
     </>
   );
+}
+
+function getReservedQuantity(events: Event[], productId: string, today: string) {
+  return events
+    .filter((event) => event.date >= today && !["cancelled", "delivered", "paid", "closed"].includes(event.status))
+    .flatMap((event) => event.items ?? [])
+    .filter((item) => item.productId === productId)
+    .reduce((sum, item) => sum + item.quantity, 0);
 }

@@ -3,7 +3,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { seedData } from "./seedData";
 import { supabase } from "./supabase";
-import type { BusinessSettings, Client, Employee, EmployeeWorkLog, Event, EventItem, Product, Quote, QuoteItem, StudioData, StudioToolPhoto } from "./types";
+import type {
+  BusinessSettings,
+  Client,
+  Employee,
+  EmployeeWorkLog,
+  Event,
+  EventItem,
+  InventoryItem,
+  Product,
+  Quote,
+  QuoteItem,
+  StudioData,
+  StudioToolPhoto
+} from "./types";
 
 const STORAGE_KEY = "manuto-flow-data-v2";
 const REMOTE_STATE_ID = "main";
@@ -243,13 +256,29 @@ export function useStudioData() {
           events: current.events.map((event) => (event.clientId === id ? { ...event, clientId: "" } : event)),
           quotes: current.quotes.map((quote) => (quote.clientId === id ? { ...quote, clientId: "" } : quote))
         })),
-      addProduct: (product: Product) => commitData((current) => ({ ...current, products: [product, ...current.products] })),
+      addProduct: (product: Product) =>
+        commitData((current) => ({
+          ...current,
+          products: [product, ...current.products],
+          inventory: [
+            {
+              id: createId("inventory"),
+              productId: product.id,
+              quantityOnHand: 0,
+              quantityReserved: 0,
+              reorderThreshold: 10,
+              averageUnitCostExVat: product.averageUnitCostExVat
+            },
+            ...current.inventory
+          ]
+        })),
       updateProduct: (product: Product) =>
         commitData((current) => ({ ...current, products: current.products.map((item) => (item.id === product.id ? product : item)) })),
       deleteProduct: (id: string) =>
         commitData((current) => ({
           ...current,
           products: current.products.filter((item) => item.id !== id),
+          inventory: current.inventory.filter((item) => item.productId !== id),
           events: current.events.map((event) => ({
             ...event,
             items: (event.items ?? []).map((item) => (item.productId === id ? { ...item, productId: "" } : item))
@@ -259,6 +288,17 @@ export function useStudioData() {
             items: (quote.items ?? []).map((item) => (item.productId === id ? { ...item, productId: "" } : item))
           }))
         })),
+      updateInventoryItem: (inventoryItem: InventoryItem) =>
+        commitData((current) => {
+          const hasItem = current.inventory.some((item) => item.id === inventoryItem.id || item.productId === inventoryItem.productId);
+
+          return {
+            ...current,
+            inventory: hasItem
+              ? current.inventory.map((item) => (item.id === inventoryItem.id || item.productId === inventoryItem.productId ? inventoryItem : item))
+              : [inventoryItem, ...current.inventory]
+          };
+        }),
       addEmployee: (employee: Employee) => commitData((current) => ({ ...current, employees: [employee, ...current.employees] })),
       updateEmployee: (employee: Employee) =>
         commitData((current) => ({ ...current, employees: current.employees.map((item) => (item.id === employee.id ? employee : item)) })),
