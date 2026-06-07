@@ -56,17 +56,19 @@ export default function EventsPage() {
 
   const filteredEvents = useMemo(() => {
     const value = query.trim().toLowerCase();
-    return data.events.filter((event) => {
-      const client = data.clients.find((item) => item.id === event.clientId);
-      const productNames = event.items.map((line) => data.products.find((item) => item.id === line.productId)?.name ?? "").join(" ");
-      const matchesQuery =
-        !value ||
-        [event.title, event.contactName, event.contactPhone, event.address, event.eventDescription, client?.name ?? "", productNames].some((field) =>
-          field.toLowerCase().includes(value)
-        );
-      const matchesStatus = statusFilter === "all" || event.status === statusFilter;
-      return matchesQuery && matchesStatus;
-    });
+    return data.events
+      .filter((event) => {
+        const client = data.clients.find((item) => item.id === event.clientId);
+        const productNames = event.items.map((line) => data.products.find((item) => item.id === line.productId)?.name ?? "").join(" ");
+        const matchesQuery =
+          !value ||
+          [event.title, event.contactName, event.contactPhone, event.address, event.eventDescription, client?.name ?? "", productNames].some((field) =>
+            field.toLowerCase().includes(value)
+          );
+        const matchesStatus = statusFilter === "all" || event.status === statusFilter;
+        return matchesQuery && matchesStatus;
+      })
+      .sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`));
   }, [data.clients, data.events, data.products, query, statusFilter]);
 
   function openNewForm() {

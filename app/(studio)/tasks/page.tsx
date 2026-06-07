@@ -26,7 +26,7 @@ const defaultUploadForm: UploadForm = {
 const KILN_CAPACITY_KEY = "manuto-flow-kiln-capacity";
 
 export default function TasksPage() {
-  const { data, addStudioToolPhoto, updateStudioToolPhoto, deleteStudioToolPhoto } = useStudioData();
+  const { data, updateEvent, addStudioToolPhoto, updateStudioToolPhoto, deleteStudioToolPhoto } = useStudioData();
   const [selectedEventId, setSelectedEventId] = useState("");
   const [kilnCapacity, setKilnCapacity] = useState(40);
   const [uploadForm, setUploadForm] = useState<UploadForm>(defaultUploadForm);
@@ -35,6 +35,9 @@ export default function TasksPage() {
   const selectedEvent = workshopEvents.find((event) => event.id === selectedEventId) ?? workshopEvents[0];
   const selectedPhotos = data.studioToolPhotos.filter((photo) => photo.eventId === selectedEvent?.id);
   const selectedProductNames = useMemo(() => (selectedEvent ? getEventProductNames(selectedEvent, data.products) : []), [data.products, selectedEvent]);
+  const selectedToolSummary = useMemo(() => (selectedEvent ? getEventToolSummary(selectedEvent, data.products) : []), [data.products, selectedEvent]);
+  const expectedToolCount = selectedToolSummary.reduce((sum, item) => sum + item.quantity, 0);
+  const photographedToolCount = sumPhotoQuantity(selectedPhotos);
   const uploadProductOptions = useMemo(() => Array.from(new Set([...selectedProductNames, "כלי", "קבוצת כלים"])), [selectedProductNames]);
   const studioLoad = useMemo(() => calculateStudioLoad(data.studioToolPhotos, kilnCapacity), [data.studioToolPhotos, kilnCapacity]);
   const selectedDeadline = selectedEvent ? getStudioDeadline(selectedEvent.date) : null;
@@ -89,7 +92,7 @@ export default function TasksPage() {
     <>
       <PageHeader
         title="סטודיו"
-        description="תיקי סדנה אחרי האירוע: מצלמים כלים, משייכים לאירוע ומקדמים אותם בגלזורה, שריפה, אריזה ומשלוח."
+        description="תיקי אירוע לסטודיו: מה הוזמן, מה צולם בסדנה, מה צריך גלזורה/שריפה/אריזה, ומה חייב להיות מוכן לאיסוף."
       />
 
       {workshopEvents.length ? (
@@ -124,9 +127,7 @@ export default function TasksPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <h2 className="text-xl font-black">{event.title}</h2>
-                        <p className={`mt-1 text-sm font-bold ${active ? "text-white/85" : "text-clay"}`}>
-                          {event.date} · {event.participantCount} משתתפים
-                        </p>
+                        <p className={`mt-1 text-sm font-bold ${active ? "text-white/85" : "text-clay"}`}>{formatEventDate(event)} · {event.participantCount} משתתפים</p>
                         <p className={`mt-2 text-sm font-black ${active ? "text-white" : deadline.tone}`}>{deadline.label}</p>
                       </div>
                       <span className={`rounded-full px-3 py-1 text-sm font-black ${active ? "bg-white/20" : "bg-peach"}`}>
@@ -134,7 +135,7 @@ export default function TasksPage() {
                       </span>
                     </div>
                     <div className={`mt-4 grid grid-cols-3 gap-2 text-center text-sm font-black ${active ? "text-white" : "text-clay"}`}>
-                      <MiniNumber label="כלים" value={sumPhotoQuantity(photos)} />
+                      <MiniNumber label="צולמו" value={sumPhotoQuantity(photos)} />
                       <MiniNumber label="פתוחים" value={photos.filter((photo) => !["delivered", "closed"].includes(photo.status)).length} />
                       <MiniNumber label="חריגים" value={photos.filter((photo) => exceptionStatuses.includes(photo.status)).length} />
                     </div>
@@ -148,12 +149,12 @@ export default function TasksPage() {
               <Card className="space-y-5">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
-                    <p className="text-sm font-black text-clay">תיק סדנה</p>
+                    <p className="text-sm font-black text-clay">תיק אירוע</p>
                     <h2 className="text-3xl font-black text-ink">{selectedEvent.title}</h2>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <StatusBadge status={selectedEvent.status} />
-                      <span className="rounded-full bg-peach/70 px-3 py-1 text-sm font-black text-clay">{selectedEvent.participantCount} משתתפים</span>
-                      <span className="rounded-full bg-mint px-3 py-1 text-sm font-black text-emerald-950">{selectedPhotos.length} תמונות</span>
+                      <span className="rounded-full bg-peach/70 px-3 py-1 text-sm font-black text-clay">סדנה: {formatEventDate(selectedEvent)}</span>
+                      <span className="rounded-full bg-mint px-3 py-1 text-sm font-black text-emerald-950">צולמו {photographedToolCount} כלים</span>
                       {selectedDeadline ? (
                         <span className={`rounded-full px-3 py-1 text-sm font-black ${selectedDeadline.badgeClass}`}>{selectedDeadline.label}</span>
                       ) : null}
@@ -166,9 +167,47 @@ export default function TasksPage() {
                   </label>
                 </div>
 
+                <div className="grid gap-3 md:grid-cols-3">
+                  <InfoTile label="סה״כ כלים לפי הזמנה" value={expectedToolCount} />
+                  <InfoTile label="סה״כ כלים שצולמו" value={photographedToolCount} />
+                  <InfoTile label="תמונות בתיק" value={selectedPhotos.length} />
+                </div>
+
+                <div className="rounded-[26px] bg-white/60 p-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-black text-clay">סיכום כלים מהאירוע</p>
+                      <h3 className="text-xl font-black text-ink">מה אמור להיות בתיק</h3>
+                    </div>
+                    <span className="rounded-full bg-peach/70 px-3 py-1 text-sm font-black text-clay">{expectedToolCount} כלים</span>
+                  </div>
+                  {selectedToolSummary.length ? (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {selectedToolSummary.map((item) => (
+                        <div key={item.key} className="flex items-center justify-between gap-3 rounded-2xl bg-paper/80 px-4 py-3">
+                          <span className="font-black text-ink">{item.name}</span>
+                          <span className="font-black text-clay">{item.quantity}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="rounded-2xl bg-paper/80 px-4 py-3 text-sm font-bold text-clay">לא הוגדרו פריטים באירוע הזה.</p>
+                  )}
+                </div>
+
+                <label>
+                  <span className="mb-2 block text-sm font-black text-clay">הערות כלליות לתיק הסטודיו</span>
+                  <textarea
+                    className="input min-h-32 resize-none"
+                    value={selectedEvent.internalNotes}
+                    onChange={(event) => updateEvent({ ...selectedEvent, internalNotes: event.target.value })}
+                    placeholder="כל מה שחשוב לדעת אחרי הסדנה: משפחות, סימונים, דברים שבורים, איסוף, אריזה, בקשות מיוחדות..."
+                  />
+                </label>
+
                 <div className="grid gap-3 md:grid-cols-[1fr_0.7fr_1.4fr]">
                   <label>
-                    <span className="mb-2 block text-sm font-black text-clay">מה מצלמים</span>
+                    <span className="mb-2 block text-sm font-black text-clay">שם פרטני / מה מצלמים</span>
                     <select className="input" value={uploadForm.productName} onChange={(event) => setUploadForm({ ...uploadForm, productName: event.target.value })}>
                       {uploadProductOptions.map((name) => (
                         <option key={name} value={name}>
@@ -179,12 +218,12 @@ export default function TasksPage() {
                   </label>
                   <Field label="כמות בתמונה" value={uploadForm.quantity} onChange={(quantity) => setUploadForm({ ...uploadForm, quantity })} />
                   <label>
-                    <span className="mb-2 block text-sm font-black text-clay">הערה לפני צילום</span>
+                    <span className="mb-2 block text-sm font-black text-clay">הערה לתמונות הבאות</span>
                     <input
                       className="input"
                       value={uploadForm.note}
                       onChange={(event) => setUploadForm({ ...uploadForm, note: event.target.value })}
-                      placeholder="למשל: שולחן ימין, כלים של משפחת לוי"
+                      placeholder="למשל: שולחן ימין, משפחת לוי, ילד עם לב כחול"
                     />
                   </label>
                 </div>
@@ -194,7 +233,7 @@ export default function TasksPage() {
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-black text-clay">זרימת טיפול</p>
-                    <h3 className="text-2xl font-black text-ink">מה קורה לכלים</h3>
+                    <h3 className="text-2xl font-black text-ink">תמונות וכלים בתיק</h3>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {studioToolFlow.map((status) => (
@@ -218,7 +257,7 @@ export default function TasksPage() {
                     ))}
                   </div>
                 ) : (
-                  <EmptyState title="עוד אין תמונות לכלים" body="בסוף הסדנה מעלים כאן תמונות, כדי לדעת בדיוק מה שייך לאיזה אירוע ומה מצב הטיפול." />
+                  <EmptyState title="עוד אין תמונות לכלים" body="בסוף הסדנה מעלים כאן תמונות, נותנים לכל תמונה שם פרטני, כמות והערה, ואז יודעים בדיוק מה שייך לאיזה אירוע." />
                 )}
               </Card>
             </main>
@@ -239,6 +278,15 @@ function LoadCard({ icon, label, value, tone }: { icon: React.ReactNode; label: 
       <p className="text-sm font-black text-clay">{label}</p>
       <p className="mt-2 text-3xl font-black text-ink">{value}</p>
     </Card>
+  );
+}
+
+function InfoTile({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-[24px] bg-white/60 px-4 py-3">
+      <p className="text-sm font-black text-clay">{label}</p>
+      <p className="mt-1 text-2xl font-black text-ink">{value}</p>
+    </div>
   );
 }
 
@@ -279,7 +327,7 @@ function ToolPhotoCard({
         </label>
         <div className="grid grid-cols-[1fr_110px] gap-3">
           <label>
-            <span className="mb-2 block text-sm font-black text-clay">פריט</span>
+            <span className="mb-2 block text-sm font-black text-clay">שם פרטני</span>
             <input
               className="input"
               list={`studio-product-names-${photo.id}`}
@@ -331,7 +379,7 @@ function getWorkshopEvents(events: Event[], photos: StudioToolPhoto[]) {
   const relevantStatuses = new Set(["completed", "studio_work", "glazing", "firing", "packing", "delivered", "closed"]);
   return events
     .filter((event) => photoEventIds.has(event.id) || relevantStatuses.has(event.status) || event.status !== "cancelled")
-    .sort((a, b) => b.date.localeCompare(a.date));
+    .sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`));
 }
 
 function getEventProductNames(event: Event, products: { id: string; name: string }[]) {
@@ -339,6 +387,28 @@ function getEventProductNames(event: Event, products: { id: string; name: string
     .map((item) => products.find((product) => product.id === item.productId)?.name)
     .filter((name): name is string => Boolean(name));
   return Array.from(new Set(names));
+}
+
+function getEventToolSummary(event: Event, products: { id: string; name: string }[]) {
+  const summary = new Map<string, { key: string; name: string; quantity: number }>();
+
+  event.items.forEach((item) => {
+    const name = products.find((product) => product.id === item.productId)?.name ?? "כלי ללא שם";
+    const key = item.productId || name;
+    const current = summary.get(key);
+    summary.set(key, {
+      key,
+      name,
+      quantity: (current?.quantity ?? 0) + item.quantity
+    });
+  });
+
+  return Array.from(summary.values());
+}
+
+function formatEventDate(event: Event) {
+  const date = formatDate(parseLocalDate(event.date));
+  return `${date} · ${event.startTime}`;
 }
 
 function sumPhotoQuantity(photos: StudioToolPhoto[]) {
