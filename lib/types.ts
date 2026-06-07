@@ -58,6 +58,22 @@ export type Employee = {
   notes: string;
 };
 
+export type EmployeeWorkActivity = "workshop" | "glazing" | "packing" | "firing" | "delivery" | "studio" | "admin" | "other";
+
+export type EmployeeWorkLog = {
+  id: string;
+  employeeId: string;
+  eventId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  hours: number;
+  hourlyRate: number;
+  activity: EmployeeWorkActivity;
+  note: string;
+  createdAt: string;
+};
+
 export type EventEmployeeAssignment = {
   employeeId: string;
   eventHours: number;
@@ -204,6 +220,7 @@ export type StudioData = {
   clients: Client[];
   products: Product[];
   employees: Employee[];
+  employeeWorkLogs: EmployeeWorkLog[];
   events: Event[];
   quotes: Quote[];
   inventory: InventoryItem[];

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { seedData } from "./seedData";
 import { supabase } from "./supabase";
-import type { BusinessSettings, Client, Employee, Event, EventItem, Product, Quote, QuoteItem, StudioData, StudioToolPhoto } from "./types";
+import type { BusinessSettings, Client, Employee, EmployeeWorkLog, Event, EventItem, Product, Quote, QuoteItem, StudioData, StudioToolPhoto } from "./types";
 
 const STORAGE_KEY = "manuto-flow-data-v2";
 const REMOTE_STATE_ID = "main";
@@ -266,6 +266,7 @@ export function useStudioData() {
         commitData((current) => ({
           ...current,
           employees: current.employees.filter((item) => item.id !== id),
+          employeeWorkLogs: (current.employeeWorkLogs ?? []).filter((item) => item.employeeId !== id),
           events: current.events.map((event) => ({ ...event, assignments: event.assignments.filter((item) => item.employeeId !== id) })),
           quotes: current.quotes.map((quote) => (quote.employeeId === id ? { ...quote, employeeId: "", employeeHourlyRate: 0 } : quote))
         })),
@@ -276,10 +277,20 @@ export function useStudioData() {
         commitData((current) => ({
           ...current,
           events: current.events.filter((item) => item.id !== id),
+          employeeWorkLogs: (current.employeeWorkLogs ?? []).filter((item) => item.eventId !== id),
           quotes: current.quotes.filter((item) => item.eventId !== id),
           studioTasks: current.studioTasks.filter((item) => item.eventId !== id),
           studioToolPhotos: current.studioToolPhotos.filter((item) => item.eventId !== id)
         })),
+      addEmployeeWorkLog: (workLog: EmployeeWorkLog) =>
+        commitData((current) => ({ ...current, employeeWorkLogs: [workLog, ...(current.employeeWorkLogs ?? [])] })),
+      updateEmployeeWorkLog: (workLog: EmployeeWorkLog) =>
+        commitData((current) => ({
+          ...current,
+          employeeWorkLogs: (current.employeeWorkLogs ?? []).map((item) => (item.id === workLog.id ? workLog : item))
+        })),
+      deleteEmployeeWorkLog: (id: string) =>
+        commitData((current) => ({ ...current, employeeWorkLogs: (current.employeeWorkLogs ?? []).filter((item) => item.id !== id) })),
       addQuote: (quote: Quote) => commitData((current) => ({ ...current, quotes: [quote, ...current.quotes] })),
       updateQuote: (quote: Quote) =>
         commitData((current) => ({ ...current, quotes: current.quotes.map((item) => (item.id === quote.id ? quote : item)) })),
@@ -321,6 +332,14 @@ function normalizeData(value: StudioData): StudioData {
     clients,
     products,
     employees: value.employees ?? seedData.employees,
+    employeeWorkLogs: (value.employeeWorkLogs ?? seedData.employeeWorkLogs).map((workLog) => ({
+      ...workLog,
+      eventId: workLog.eventId ?? "",
+      hours: workLog.hours ?? calculateHours(workLog.startTime, workLog.endTime),
+      hourlyRate: workLog.hourlyRate ?? value.employees?.find((employee) => employee.id === workLog.employeeId)?.hourlyRate ?? 0,
+      note: workLog.note ?? "",
+      createdAt: workLog.createdAt ?? new Date().toISOString()
+    })),
     events: (value.events ?? seedData.events).map((event) => normalizeEvent(event)),
     quotes,
     studioToolPhotos: (value.studioToolPhotos ?? seedData.studioToolPhotos).map((photo) => ({
@@ -331,6 +350,14 @@ function normalizeData(value: StudioData): StudioData {
       note: photo.note ?? ""
     }))
   };
+}
+
+function calculateHours(startTime = "09:00", endTime = "10:00") {
+  const [startHour, startMinute] = startTime.split(":").map(Number);
+  const [endHour, endMinute] = endTime.split(":").map(Number);
+  const start = startHour * 60 + startMinute;
+  const end = endHour * 60 + endMinute;
+  return Math.max(0, Number(((end - start) / 60).toFixed(2)));
 }
 
 function normalizeEvent(event: Event & Partial<{

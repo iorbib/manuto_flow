@@ -2,6 +2,7 @@ import type {
   BusinessSettings,
   Client,
   Employee,
+  EmployeeWorkLog,
   Event,
   EventStatus,
   InventoryItem,
@@ -334,6 +335,8 @@ export const seedStudioTasks: StudioTask[] = [
 
 export const seedStudioToolPhotos: StudioToolPhoto[] = [];
 
+export const seedEmployeeWorkLogs: EmployeeWorkLog[] = [];
+
 export const seedSupplierProducts: SupplierProduct[] = [
   {
     id: "supplier_1",
@@ -353,6 +356,7 @@ export const seedData: StudioData = {
   clients: seedClients,
   products: seedProducts,
   employees: seedEmployees,
+  employeeWorkLogs: seedEmployeeWorkLogs,
   events: seedEvents,
   quotes: seedQuotes,
   inventory: seedInventory,
