@@ -19,8 +19,12 @@ import type {
 } from "./types";
 
 const STORAGE_KEY = "manuto-flow-data-v2";
+const BACKUP_KEY_PREFIX = "manuto-flow-data-backup";
 const REMOTE_STATE_ID = "main";
-type RemoteStudioData = { data: StudioData; updatedAt: string | null };
+type RemoteStudioData =
+  | { status: "found"; data: StudioData; updatedAt: string | null }
+  | { status: "missing" }
+  | { status: "error"; error: string };
 
 export function createId(prefix: string) {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -54,6 +58,48 @@ export function saveStudioData(data: StudioData) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
+function backupStudioData(data: StudioData, reason: string) {
+  if (typeof window === "undefined") return;
+
+  const backup = {
+    createdAt: new Date().toISOString(),
+    reason,
+    data
+  };
+
+  window.localStorage.setItem(`${BACKUP_KEY_PREFIX}-${Date.now()}`, JSON.stringify(backup));
+
+  const backupKeys = Object.keys(window.localStorage)
+    .filter((key) => key.startsWith(BACKUP_KEY_PREFIX))
+    .sort()
+    .reverse();
+
+  backupKeys.slice(10).forEach((key) => window.localStorage.removeItem(key));
+}
+
+function countStudioRecords(data: StudioData) {
+  return (
+    (data.clients?.length ?? 0) +
+    (data.products?.length ?? 0) +
+    (data.employees?.length ?? 0) +
+    (data.employeeWorkLogs?.length ?? 0) +
+    (data.events?.length ?? 0) +
+    (data.quotes?.length ?? 0) +
+    (data.inventory?.length ?? 0) +
+    (data.studioTasks?.length ?? 0) +
+    (data.studioToolPhotos?.length ?? 0) +
+    (data.supplierProducts?.length ?? 0)
+  );
+}
+
+function shouldRecoverFromLocal(localData: StudioData, remoteData: StudioData) {
+  const localCount = countStudioRecords(localData);
+  const remoteCount = countStudioRecords(remoteData);
+  const seedCount = countStudioRecords(seedData);
+
+  return localCount > remoteCount + 2 && remoteCount <= seedCount + 2;
+}
+
 async function loadRemoteStudioData(): Promise<RemoteStudioData | null> {
   if (!supabase) return null;
 
@@ -61,10 +107,10 @@ async function loadRemoteStudioData(): Promise<RemoteStudioData | null> {
 
   if (error) {
     console.warn("Could not load studio state from Supabase", error.message);
-    return null;
+    return { status: "error", error: error.message };
   }
 
-  return data?.data ? { data: normalizeData(data.data as StudioData), updatedAt: data.updated_at ?? null } : null;
+  return data?.data ? { status: "found", data: normalizeData(data.data as StudioData), updatedAt: data.updated_at ?? null } : { status: "missing" };
 }
 
 async function saveRemoteStudioData(data: StudioData) {
@@ -138,6 +184,16 @@ export function useStudioData() {
 
     if (!force && serializedData === currentSerializedData.current) return;
 
+    if (shouldRecoverFromLocal(currentData.current, normalizedData)) {
+      backupStudioData(normalizedData, "incoming-cloud-looked-reset");
+      saveRemoteStudioData(currentData.current);
+      return;
+    }
+
+    if (currentSerializedData.current !== JSON.stringify(seedData)) {
+      backupStudioData(currentData.current, "before-cloud-apply");
+    }
+
     applyingRemoteData.current = true;
     lastSavedData.current = serializedData;
     currentData.current = normalizedData;
@@ -162,20 +218,44 @@ export function useStudioData() {
         return;
       }
 
+      const localData = loadStudioData();
+      currentData.current = localData;
+      currentSerializedData.current = JSON.stringify(localData);
+
       const remoteRow = await loadRemoteStudioData();
-      const nextData = remoteRow?.data ?? seedData;
+
+      if (remoteRow?.status === "error") {
+        if (!cancelled) {
+          lastSavedData.current = JSON.stringify(localData);
+          setData(localData);
+          setSyncMode("local");
+          setReady(true);
+        }
+        return;
+      }
+
+      const shouldUseLocalRecovery = remoteRow?.status === "found" && shouldRecoverFromLocal(localData, remoteRow.data);
+      const nextData = shouldUseLocalRecovery || remoteRow?.status !== "found" ? localData : remoteRow.data;
       const serializedData = JSON.stringify(nextData);
 
-      if (!remoteRow) {
-        const saved = await saveRemoteStudioData(seedData);
+      if (shouldUseLocalRecovery) {
+        backupStudioData(remoteRow.data, "cloud-looked-reset-before-local-recovery");
+        const saved = await saveRemoteStudioData(localData);
         if (saved) {
-          lastSavedData.current = JSON.stringify(seedData);
+          lastSavedData.current = JSON.stringify(localData);
+        }
+      }
+
+      if (remoteRow?.status === "missing") {
+        const saved = await saveRemoteStudioData(localData);
+        if (saved) {
+          lastSavedData.current = JSON.stringify(localData);
         }
       }
 
       if (!cancelled) {
-        applyingRemoteData.current = Boolean(remoteRow);
-        if (remoteRow) {
+        applyingRemoteData.current = remoteRow?.status === "found" && !shouldUseLocalRecovery;
+        if (remoteRow?.status === "found" && !shouldUseLocalRecovery) {
           lastSavedData.current = serializedData;
         }
         currentData.current = nextData;
@@ -193,7 +273,7 @@ export function useStudioData() {
       if (isSaving.current) return;
 
       const remoteRow = await loadRemoteStudioData();
-      if (remoteRow) applyRemoteData(remoteRow.data);
+      if (remoteRow?.status === "found") applyRemoteData(remoteRow.data);
     }
 
     const channel = supabase
