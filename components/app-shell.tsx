@@ -33,6 +33,8 @@ const navigation = [
   { href: "/settings", label: "הגדרות", icon: Settings }
 ];
 
+const appVersion = "2026-06-11-sync-safe";
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -54,6 +56,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <span>
                 <span className="block text-xl font-black text-ink">Manuto Flow</span>
                 <span className="block text-sm text-clay">שולחן סטודיו דיגיטלי</span>
+                <span className="block text-[11px] font-bold text-clay/70">גרסה {appVersion}</span>
               </span>
             </Link>
             <button
@@ -94,7 +97,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
         </aside>
 
-        <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:mr-72 lg:px-8 lg:py-8">{children}</main>
+        <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:mr-72 lg:px-8 lg:py-8">
+          <div className="mb-3 text-left text-[11px] font-bold text-clay/60 lg:hidden">גרסה {appVersion}</div>
+          {children}
+        </main>
       </div>
     </AuthGate>
   );
