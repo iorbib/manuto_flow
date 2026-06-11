@@ -77,29 +77,6 @@ function backupStudioData(data: StudioData, reason: string) {
   backupKeys.slice(10).forEach((key) => window.localStorage.removeItem(key));
 }
 
-function countStudioRecords(data: StudioData) {
-  return (
-    (data.clients?.length ?? 0) +
-    (data.products?.length ?? 0) +
-    (data.employees?.length ?? 0) +
-    (data.employeeWorkLogs?.length ?? 0) +
-    (data.events?.length ?? 0) +
-    (data.quotes?.length ?? 0) +
-    (data.inventory?.length ?? 0) +
-    (data.studioTasks?.length ?? 0) +
-    (data.studioToolPhotos?.length ?? 0) +
-    (data.supplierProducts?.length ?? 0)
-  );
-}
-
-function shouldRecoverFromLocal(localData: StudioData, remoteData: StudioData) {
-  const localCount = countStudioRecords(localData);
-  const remoteCount = countStudioRecords(remoteData);
-  const seedCount = countStudioRecords(seedData);
-
-  return localCount > remoteCount + 2 && remoteCount <= seedCount + 2;
-}
-
 async function loadRemoteStudioData(): Promise<RemoteStudioData | null> {
   if (!supabase) return null;
 
@@ -184,12 +161,6 @@ export function useStudioData() {
 
     if (!force && serializedData === currentSerializedData.current) return;
 
-    if (shouldRecoverFromLocal(currentData.current, normalizedData)) {
-      backupStudioData(normalizedData, "incoming-cloud-looked-reset");
-      saveRemoteStudioData(currentData.current);
-      return;
-    }
-
     if (currentSerializedData.current !== JSON.stringify(seedData)) {
       backupStudioData(currentData.current, "before-cloud-apply");
     }
@@ -234,17 +205,8 @@ export function useStudioData() {
         return;
       }
 
-      const shouldUseLocalRecovery = remoteRow?.status === "found" && shouldRecoverFromLocal(localData, remoteRow.data);
-      const nextData = shouldUseLocalRecovery || remoteRow?.status !== "found" ? localData : remoteRow.data;
+      const nextData = remoteRow?.status === "found" ? remoteRow.data : localData;
       const serializedData = JSON.stringify(nextData);
-
-      if (shouldUseLocalRecovery) {
-        backupStudioData(remoteRow.data, "cloud-looked-reset-before-local-recovery");
-        const saved = await saveRemoteStudioData(localData);
-        if (saved) {
-          lastSavedData.current = JSON.stringify(localData);
-        }
-      }
 
       if (remoteRow?.status === "missing") {
         const saved = await saveRemoteStudioData(localData);
@@ -254,8 +216,8 @@ export function useStudioData() {
       }
 
       if (!cancelled) {
-        applyingRemoteData.current = remoteRow?.status === "found" && !shouldUseLocalRecovery;
-        if (remoteRow?.status === "found" && !shouldUseLocalRecovery) {
+        applyingRemoteData.current = remoteRow?.status === "found";
+        if (remoteRow?.status === "found") {
           lastSavedData.current = serializedData;
         }
         currentData.current = nextData;
