@@ -105,6 +105,8 @@ export default function InventoryPage() {
                   <input
                     type="number"
                     min="0"
+                    step="1"
+                    inputMode="numeric"
                     value={inventory.quantityOnHand}
                     onChange={(event) => saveInventoryPatch(inventory, { quantityOnHand: Number(event.target.value) || 0 })}
                     className="rounded-3xl border border-clay/15 bg-white/80 px-4 py-3 text-lg font-black text-ink outline-none focus:border-coral"
@@ -115,8 +117,10 @@ export default function InventoryPage() {
                   <input
                     type="number"
                     min="0"
+                    step="1"
+                    inputMode="numeric"
                     value={roundMoney(inventory.averageUnitCostExVat * vatMultiplier)}
-                    onChange={(event) => saveInventoryPatch(inventory, { averageUnitCostExVat: roundMoney((Number(event.target.value) || 0) / vatMultiplier) })}
+                    onChange={(event) => saveInventoryPatch(inventory, { averageUnitCostExVat: (Number(event.target.value) || 0) / vatMultiplier })}
                     className="rounded-3xl border border-clay/15 bg-white/80 px-4 py-3 text-lg font-black text-ink outline-none focus:border-coral"
                   />
                 </label>

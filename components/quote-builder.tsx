@@ -263,7 +263,7 @@ function Field({ label, value, onChange }: { label: string; value: number; onCha
   return (
     <label>
       <span className="mb-2 block text-sm font-black text-clay">{label}</span>
-      <input className="input" type="number" min="0" value={value} onChange={(event) => onChange(Number(event.target.value))} />
+      <input className="input" type="number" min="0" step="1" inputMode="numeric" value={value} onChange={(event) => onChange(Number(event.target.value))} />
     </label>
   );
 }

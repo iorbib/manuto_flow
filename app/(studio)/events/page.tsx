@@ -242,11 +242,11 @@ export default function EventsPage() {
                         </select>
                       </label>
                       <NumberInput label="כמות לאירוע" value={item.quantity} onChange={(value) => updateItem(item.id, { quantity: value })} />
-                      <NumberInput label="מחיר לכלי ללקוח" value={item.pricePerItemIncVat} onChange={(value) => updateItem(item.id, { pricePerItemIncVat: value })} />
+                      <NumberInput label="מחיר לכלי ללקוח כולל מע״מ" value={item.pricePerItemIncVat} onChange={(value) => updateItem(item.id, { pricePerItemIncVat: value })} />
                       <NumberInput
                         label="עלות כלי כולל מע״מ"
                         value={roundMoney(item.unitCostExVat * vatMultiplier)}
-                        onChange={(value) => updateItem(item.id, { unitCostExVat: roundMoney(value / vatMultiplier) })}
+                        onChange={(value) => updateItem(item.id, { unitCostExVat: value / vatMultiplier })}
                       />
                     </div>
                     <p className="mt-3 text-sm font-black text-clay">
@@ -386,7 +386,7 @@ function NumberInput({ label, value, onChange }: { label: string; value: number;
   return (
     <label>
       <span className="mb-2 block text-sm font-black text-clay">{label}</span>
-      <input className="input" type="number" min="0" value={value} onChange={(event) => onChange(Number(event.target.value))} />
+      <input className="input" type="number" min="0" step="1" inputMode="numeric" value={value} onChange={(event) => onChange(Number(event.target.value))} />
     </label>
   );
 }

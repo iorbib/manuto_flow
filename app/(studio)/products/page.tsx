@@ -79,7 +79,7 @@ export default function ProductsPage() {
               label="עלות ממוצעת כולל מע״מ"
               type="number"
               value={String(roundMoney(form.averageUnitCostExVat * vatMultiplier))}
-              onChange={(value) => setForm({ ...form, averageUnitCostExVat: roundMoney(Number(value) / vatMultiplier) })}
+              onChange={(value) => setForm({ ...form, averageUnitCostExVat: Number(value) / vatMultiplier })}
             />
             <Input label="מחיר מומלץ למשתתף כולל מע״מ" type="number" value={String(form.recommendedParticipantPriceIncVat)} onChange={(value) => setForm({ ...form, recommendedParticipantPriceIncVat: Number(value) })} />
             <Input label="ספק" value={form.supplierName} onChange={(value) => setForm({ ...form, supplierName: value })} />
@@ -168,7 +168,7 @@ function Input({ label, value, onChange, type = "text", required = false }: { la
   return (
     <label>
       <span className="mb-2 block text-sm font-black text-clay">{label}</span>
-      <input className="input" type={type} value={value} required={required} onChange={(event) => onChange(event.target.value)} />
+      <input className="input" type={type} inputMode={type === "number" ? "numeric" : undefined} step={type === "number" ? "1" : undefined} value={value} required={required} onChange={(event) => onChange(event.target.value)} />
     </label>
   );
 }
