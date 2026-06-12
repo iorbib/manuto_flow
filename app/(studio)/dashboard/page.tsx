@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, CalendarClock, ClipboardCheck, Heart, PackageSearch } from "lucide-react";
-import { ActionButton, Card, InlineLink, StatCard } from "@/components/ui";
+import { AlertTriangle, ArrowLeft, CalendarClock, ClipboardCheck, Heart, PackageSearch, Paintbrush } from "lucide-react";
+import { ActionButton, InlineLink } from "@/components/ui";
 import { formatCurrency } from "@/lib/pricing";
 import { useStudioData } from "@/lib/storage";
 import type { Event } from "@/lib/types";
@@ -37,105 +37,80 @@ export default function DashboardPage() {
   const dailySupportMessage = data.dailySupportMessages[0] ?? "בואי נתחיל בדבר הבא שעל השולחן.";
 
   return (
-    <>
-      <section className="motion-rise mb-6 overflow-hidden rounded-[2rem] border border-clay/10 bg-paper/82 p-5 shadow-[0_26px_80px_rgba(122,76,62,0.12),inset_0_1px_0_rgba(255,255,255,0.78)] backdrop-blur-xl sm:p-7">
-        <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr] lg:items-end">
-          <div>
-            <img src={manutoLogoUrl} alt="Manuto" className="mb-6 h-auto w-44 max-w-[70vw]" />
-            <div className="mb-4 h-1.5 w-16 rounded-full bg-coral/80" />
-            <h1 className="max-w-3xl text-4xl font-black leading-[1.05] tracking-normal text-ink sm:text-5xl">היום במנותו</h1>
-            <p className="mt-3 max-w-2xl text-lg font-bold leading-8 text-clay/88">מסך עבודה יומי שמחזיק אירועים, סטודיו, מלאי והצעות במקום אחד.</p>
+    <div className="space-y-6">
+      <section className="motion-rise overflow-hidden rounded-[2.4rem] border border-clay/10 bg-[#fffdf8] shadow-[0_30px_90px_rgba(122,76,62,0.14)]">
+        <div className="grid min-h-[430px] lg:grid-cols-[1fr_390px]">
+          <div className="relative overflow-hidden p-6 sm:p-8 lg:p-10">
+            <div className="absolute inset-x-0 top-0 h-2 bg-coral" />
+            <div className="pointer-events-none absolute -left-28 top-16 h-72 w-72 rounded-full bg-blush/28 blur-3xl" />
+            <div className="pointer-events-none absolute bottom-0 right-10 h-52 w-52 rounded-full bg-mint/35 blur-3xl" />
+
+            <div className="relative flex h-full flex-col justify-between gap-8">
+              <div>
+                <img src={manutoLogoUrl} alt="Manuto" className="h-auto w-44 max-w-[70vw]" />
+                <p className="mt-8 text-sm font-black text-clay/75">שולחן עבודה יומי</p>
+                <h1 className="mt-3 max-w-3xl text-5xl font-black leading-[0.98] tracking-normal text-ink sm:text-6xl">מה מחכה היום בסטודיו?</h1>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-4">
+                <Metric label="אירועים" value={data.events.length} />
+                <Metric label="הצעות פתוחות" value={openQuotes.length} />
+                <Metric label="פריטים" value={data.products.length} />
+                <Metric label="מתעניינים" value={data.clients.filter((client) => client.clientStatus === "interested").length} />
+              </div>
+            </div>
           </div>
 
-          <div className="rounded-[1.6rem] border border-clay/10 bg-white/58 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
-            <div className="mb-3 flex items-center gap-2 text-sm font-black text-clay">
-              <CalendarClock size={18} className="text-coral" />
-              האירוע הבא
+          <aside className="border-t border-clay/10 bg-[#f7dfd6] p-6 sm:p-8 lg:border-r lg:border-t-0">
+            <div className="flex h-full flex-col justify-between gap-8">
+              <div>
+                <div className="mb-5 flex items-center gap-2 font-black text-clay">
+                  <CalendarClock size={19} />
+                  האירוע הבא
+                </div>
+                {nextEvent ? (
+                  <div>
+                    <p className="text-4xl font-black leading-tight text-ink">{nextEvent.title}</p>
+                    <p className="mt-4 text-lg font-black text-clay">
+                      {nextEvent.date} · {nextEvent.startTime || "ללא שעה"}
+                    </p>
+                    <p className="mt-2 font-bold leading-7 text-clay/90">{nextEvent.address || "ללא כתובת"}</p>
+                    <p className="mt-6 border-t border-clay/15 pt-5 font-bold leading-8 text-ink/80">{nextEvent.eventDescription || nextEvent.internalNotes || "אין תיאור עדיין."}</p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-3xl font-black leading-tight text-ink">עוד אין אירועים.</p>
+                    <p className="mt-3 font-bold leading-7 text-clay">בואי נוסיף את הסדנה הראשונה.</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <InlineLink href="/events">{nextEvent ? "לערוך אירועים" : "הוספת אירוע ראשון"}</InlineLink>
+                <Link href="/schedule" className="inline-flex items-center gap-2 rounded-full border border-clay/15 bg-white/60 px-4 py-2 font-black text-clay transition hover:bg-white active:scale-[0.98]">
+                  סידור עבודה
+                  <ArrowLeft size={18} />
+                </Link>
+              </div>
             </div>
-            {nextEvent ? (
-              <>
-                <p className="text-2xl font-black text-ink">{nextEvent.title}</p>
-                <p className="mt-2 font-bold text-clay">
-                  {nextEvent.date} · {nextEvent.startTime || "ללא שעה"} · {nextEvent.address || "ללא כתובת"}
-                </p>
-                <div className="mt-4">
-                  <InlineLink href="/events">לערוך אירועים</InlineLink>
-                </div>
-              </>
-            ) : (
-              <>
-                <p className="text-2xl font-black text-ink">עוד אין אירועים.</p>
-                <p className="mt-2 font-bold text-clay">בואי נוסיף את הסדנה הראשונה.</p>
-                <div className="mt-4">
-                  <InlineLink href="/events">הוספת אירוע ראשון</InlineLink>
-                </div>
-              </>
-            )}
-          </div>
+          </aside>
         </div>
       </section>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <StatCard label="אירועים" value={`${data.events.length}`} tone="bg-coral" />
-        <StatCard label="הצעות פתוחות" value={`${openQuotes.length}`} tone="bg-lavender" />
-        <StatCard label="פריטים" value={`${data.products.length}`} tone="bg-mint" />
-        <StatCard label="לקוחות מתעניינים" value={`${data.clients.filter((client) => client.clientStatus === "interested").length}`} tone="bg-sky" />
-      </div>
+      <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr_1fr]">
+        <WorkPanel icon={<Heart size={20} />} title="הפתק של היום" tone="bg-blush/35">
+          <p className="text-2xl font-black leading-10 text-ink">{dailySupportMessage}</p>
+        </WorkPanel>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
-        <Card>
-          <div className="mb-4 flex items-center gap-3">
-            <CalendarClock className="text-coral" />
-            <h2 className="text-2xl font-black text-ink">תיאור האירוע הבא</h2>
-          </div>
-          {nextEvent ? (
-            <div className="surface-quiet rounded-[1.35rem] p-5">
-              <p className="text-3xl font-black text-ink">{nextEvent.title}</p>
-              <p className="mt-2 font-bold text-clay">
-                {nextEvent.date} · {nextEvent.startTime} · {nextEvent.address || "ללא כתובת"}
-              </p>
-              <p className="mt-4 leading-7 text-ink">{nextEvent.eventDescription || nextEvent.internalNotes || "אין תיאור עדיין."}</p>
-              <div className="mt-5">
-                <InlineLink href="/events">לערוך אירועים</InlineLink>
-              </div>
-            </div>
-          ) : (
-            <div className="surface-quiet rounded-[1.35rem] p-5">
-              <p className="text-2xl font-black text-ink">עוד אין אירועים.</p>
-              <p className="mt-2 font-bold text-clay">בואי נוסיף את הסדנה הראשונה.</p>
-              <div className="mt-5">
-                <InlineLink href="/events">הוספת אירוע ראשון</InlineLink>
-              </div>
-            </div>
-          )}
-        </Card>
-
-        <Card>
-          <div className="mb-4 flex items-center gap-3">
-            <Heart className="text-coral" />
-            <h2 className="text-2xl font-black text-ink">הפתק של היום</h2>
-          </div>
-          <p className="surface-quiet rounded-[1.35rem] p-5 text-xl font-bold leading-9 text-ink">{dailySupportMessage}</p>
-        </Card>
-
-        <Card>
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <ClipboardCheck className="text-coral" />
-              <h2 className="text-2xl font-black text-ink">הצעות פתוחות</h2>
-            </div>
-            <Link href="/quotes">
-              <ActionButton tone="quiet">לניהול</ActionButton>
-            </Link>
-          </div>
+        <WorkPanel icon={<ClipboardCheck size={20} />} title="הצעות פתוחות" action={<ActionButton tone="quiet">לניהול</ActionButton>} href="/quotes">
           {openQuotes.length ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {openQuotes.map((quote) => {
+            <div className="divide-y divide-clay/10">
+              {openQuotes.slice(0, 4).map((quote) => {
                 const event = data.events.find((item) => item.id === quote.eventId);
                 return (
-                  <div key={quote.id} className="surface-quiet rounded-[1.25rem] p-4">
-                    <p className="font-black text-ink">{event?.title || "הצעה ללא אירוע"}</p>
-                    <p className="mt-1 text-sm font-bold text-clay">{formatCurrency(quote.items.reduce((sum, item) => sum + item.quantity * item.pricePerParticipantIncVat, 0))}</p>
+                  <div key={quote.id} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
+                    <span className="font-black text-ink">{event?.title || "הצעה ללא אירוע"}</span>
+                    <span className="font-mono text-sm font-black text-clay">{formatCurrency(quote.items.reduce((sum, item) => sum + item.quantity * item.pricePerParticipantIncVat, 0))}</span>
                   </div>
                 );
               })}
@@ -143,44 +118,33 @@ export default function DashboardPage() {
           ) : (
             <p className="font-bold text-clay">אין הצעות פתוחות כרגע.</p>
           )}
-        </Card>
+        </WorkPanel>
 
-        <Card>
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <PackageSearch className="text-coral" />
-              <h2 className="text-2xl font-black text-ink">מלאי שכדאי לבדוק</h2>
-            </div>
-            <Link href="/products">
-              <ActionButton tone="quiet">פריטים</ActionButton>
-            </Link>
-          </div>
+        <WorkPanel icon={<PackageSearch size={20} />} title="מלאי שכדאי לבדוק" action={<ActionButton tone="quiet">מלאי</ActionButton>} href="/inventory">
           {lowInventory.length ? (
-            <div className="space-y-3">
-              {lowInventory.map((item) => {
-                return (
-                  <div key={item.product.id} className="surface-quiet flex items-center justify-between rounded-[1.25rem] p-4 font-bold">
-                    <span>{item.product.name}</span>
-                    <span className="inline-flex items-center gap-2 text-clay">
-                      <AlertTriangle size={17} />
-                      {item.availableQuantity} פנוי
-                      {item.reservedQuantity ? ` · ${item.reservedQuantity} שמורים` : ""}
-                    </span>
-                  </div>
-                );
-              })}
+            <div className="space-y-2">
+              {lowInventory.slice(0, 5).map((item) => (
+                <div key={item.product.id} className="flex items-center justify-between gap-3 rounded-2xl bg-white/60 px-3 py-3 font-bold text-clay">
+                  <span className="inline-flex min-w-0 items-center gap-2">
+                    <AlertTriangle size={17} className="shrink-0 text-coral" />
+                    <span className="truncate">{item.product.name}</span>
+                  </span>
+                  <span className="shrink-0 font-mono font-black text-ink">{item.availableQuantity}</span>
+                </div>
+              ))}
             </div>
           ) : (
             <p className="font-bold text-clay">המלאי נראה רגוע כרגע.</p>
           )}
-        </Card>
+        </WorkPanel>
+      </section>
 
-        <Card className="lg:col-span-2">
-          <h2 className="mb-4 text-2xl font-black text-ink">סטודיו</h2>
+      <section className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
+        <WorkPanel icon={<Paintbrush size={20} />} title="סטודיו" href="/tasks">
           {studioEvents.length ? (
-            <div className="grid gap-3 sm:grid-cols-3">
-              {studioEvents.map((event) => (
-                <Link key={event.id} href="/events" className="surface-quiet rounded-[1.25rem] p-4 font-bold text-ink transition hover:-translate-y-0.5">
+            <div className="grid gap-2 sm:grid-cols-2">
+              {studioEvents.slice(0, 6).map((event) => (
+                <Link key={event.id} href="/tasks" className="rounded-2xl bg-white/60 px-4 py-3 font-black text-ink transition hover:-translate-y-0.5">
                   {event.title}
                 </Link>
               ))}
@@ -188,9 +152,61 @@ export default function DashboardPage() {
           ) : (
             <p className="font-bold text-clay">אין כרגע אירועים שמחכים לעבודה בסטודיו.</p>
           )}
-        </Card>
+        </WorkPanel>
+
+        <div className="overflow-hidden rounded-[2rem] border border-clay/10 bg-ink p-6 text-paper shadow-[0_30px_90px_rgba(61,48,43,0.18)]">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-black text-paper/60">MANUTO FLOW</p>
+              <h2 className="mt-2 text-3xl font-black">המערכת צריכה להרגיש כמו סטודיו עובד, לא כמו טבלה.</h2>
+            </div>
+            <div className="hidden h-20 w-20 shrink-0 place-items-center rounded-[1.5rem] bg-paper/10 p-3 sm:grid">
+              <img src={manutoLogoUrl} alt="Manuto" className="h-auto w-full invert-[0.02]" />
+            </div>
+          </div>
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            <DarkChip label="אירוע" value={nextEvent?.title ?? "אין"} />
+            <DarkChip label="פתוחות" value={`${openQuotes.length}`} />
+            <DarkChip label="סטודיו" value={`${studioEvents.length}`} />
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function WorkPanel({ icon, title, children, action, href, tone = "bg-white/50" }: { icon: React.ReactNode; title: string; children: React.ReactNode; action?: React.ReactNode; href?: string; tone?: string }) {
+  const content = (
+    <section className={`motion-rise rounded-[2rem] border border-clay/10 ${tone} p-5 shadow-[0_22px_70px_rgba(122,76,62,0.1),inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-xl`}>
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 font-black text-ink">
+          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-coral text-white shadow-soft">{icon}</span>
+          <h2 className="text-xl font-black">{title}</h2>
+        </div>
+        {href && action ? <Link href={href}>{action}</Link> : action}
       </div>
-    </>
+      {children}
+    </section>
+  );
+
+  return content;
+}
+
+function Metric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-[1.4rem] border border-clay/10 bg-white/60 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+      <p className="text-xs font-black text-clay/75">{label}</p>
+      <p className="mt-2 font-mono text-3xl font-black text-ink">{value}</p>
+    </div>
+  );
+}
+
+function DarkChip({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[1.3rem] border border-paper/10 bg-paper/10 p-4">
+      <p className="text-xs font-black text-paper/60">{label}</p>
+      <p className="mt-2 truncate font-black text-paper">{value}</p>
+    </div>
   );
 }
 

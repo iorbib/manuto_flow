@@ -64,7 +64,7 @@ function LoginForm() {
             <img src={manutoLogoUrl} alt="Manuto" className="h-auto w-full" />
           </div>
           <h1 className="mt-4 text-4xl font-black tracking-normal text-ink">Manuto Flow</h1>
-          <p className="mt-2 font-bold text-clay/85">כניסה לשולחן הסטודיו של מנותו</p>
+          <p className="mt-2 font-bold text-clay/80">כניסה לשולחן הסטודיו של מנותו</p>
         </div>
 
         <form onSubmit={submitLogin} className="studio-card rounded-[2rem] p-6">

@@ -17,7 +17,7 @@ export function PageHeader({
       <div>
         <div className="mb-3 h-1.5 w-14 rounded-full bg-coral/80" />
         <h1 className="text-3xl font-black leading-tight tracking-normal text-ink sm:text-4xl">{title}</h1>
-        {description ? <p className="mt-2 max-w-2xl text-base font-bold leading-7 text-clay/85">{description}</p> : null}
+        {description ? <p className="mt-2 max-w-2xl text-base font-bold leading-7 text-clay/80">{description}</p> : null}
       </div>
       {action}
     </header>
@@ -94,7 +94,7 @@ export function EmptyState({ title, body }: { title: string; body: string }) {
     <Card className="text-center">
       <div className="mx-auto mb-4 h-1.5 w-16 rounded-full bg-coral/70" />
       <p className="text-xl font-black text-ink">{title}</p>
-      <p className="mx-auto mt-2 max-w-xl font-bold leading-7 text-clay/85">{body}</p>
+      <p className="mx-auto mt-2 max-w-xl font-bold leading-7 text-clay/80">{body}</p>
     </Card>
   );
 }
