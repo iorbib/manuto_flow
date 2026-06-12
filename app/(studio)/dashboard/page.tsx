@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AlertTriangle, ArrowLeft, CalendarClock, ClipboardCheck, Heart, PackageSearch, Paintbrush } from "lucide-react";
 import { ActionButton, InlineLink } from "@/components/ui";
 import { formatCurrency } from "@/lib/pricing";
+import { dailySupportMessages } from "@/lib/seedData";
 import { useStudioData } from "@/lib/storage";
 import type { Event } from "@/lib/types";
 
@@ -34,7 +35,8 @@ export default function DashboardPage() {
     .filter((item) => item.availableQuantity < lowStockThreshold)
     .sort((first, second) => first.availableQuantity - second.availableQuantity);
   const studioEvents = data.events.filter((event) => ["completed", "studio_work", "glazing", "firing", "packing"].includes(event.status));
-  const dailySupportMessage = data.dailySupportMessages[0] ?? "בואי נתחיל בדבר הבא שעל השולחן.";
+  const supportMessages = [...dailySupportMessages, ...(data.dailySupportMessages ?? [])].filter(Boolean);
+  const dailySupportMessage = supportMessages[getDayOfYear(new Date()) % supportMessages.length] ?? "בואי נתחיל בדבר הבא שעל השולחן.";
 
   return (
     <div className="space-y-6">
@@ -158,7 +160,8 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-black text-paper/60">MANUTO FLOW</p>
-              <h2 className="mt-2 text-3xl font-black">המערכת צריכה להרגיש כמו סטודיו עובד, לא כמו טבלה.</h2>
+              <h2 className="mt-2 text-3xl font-black">מבט קצר על מה שצריך לזוז היום.</h2>
+              <p className="mt-3 max-w-xl font-bold leading-7 text-paper/70">אירועים קרובים, הצעות פתוחות וסטודיו שצריך תשומת לב.</p>
             </div>
             <div className="hidden h-20 w-20 shrink-0 place-items-center rounded-[1.5rem] bg-paper/10 p-3 sm:grid">
               <img src={manutoLogoUrl} alt="Manuto" className="h-auto w-full invert-[0.02]" />
@@ -208,6 +211,12 @@ function DarkChip({ label, value }: { label: string; value: string }) {
       <p className="mt-2 truncate font-black text-paper">{value}</p>
     </div>
   );
+}
+
+function getDayOfYear(date: Date) {
+  const start = new Date(date.getFullYear(), 0, 0);
+  const diff = date.getTime() - start.getTime();
+  return Math.floor(diff / 86400000);
 }
 
 function getReservedQuantity(events: Event[], productId: string, today: string) {

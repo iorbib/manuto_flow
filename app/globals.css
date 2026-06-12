@@ -13,6 +13,13 @@
   --manuto-cream: #fff7ef;
 }
 
+.google-sans-manuto {
+  font-family: "Google Sans", "Product Sans", "Noto Sans Hebrew", "Segoe UI", Arial, system-ui, sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
+  font-variation-settings: "GRAD" 0;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -24,7 +31,9 @@ body {
     linear-gradient(135deg, rgba(255, 255, 255, 0.74) 0%, rgba(255, 247, 239, 0) 38%),
     linear-gradient(180deg, #fff7ef 0%, #fff0e4 56%, #fff8f1 100%);
   color: var(--manuto-ink);
-  font-family: "Arial Hebrew", "Noto Sans Hebrew", "Segoe UI", Arial, system-ui, sans-serif;
+  font-family: "Google Sans", "Product Sans", "Noto Sans Hebrew", "Segoe UI", Arial, system-ui, sans-serif;
+  font-optical-sizing: auto;
+  font-variation-settings: "GRAD" 0;
 }
 
 body::before {
