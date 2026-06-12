@@ -99,31 +99,87 @@ function MonthView({
   clients: { id: string; name: string }[];
   cursor: Date;
 }) {
+  const todayKey = toDateKey(new Date());
+  const [selectedKey, setSelectedKey] = useState(() => {
+    const todayInView = days.some((day) => toDateKey(day) === todayKey);
+    return todayInView ? todayKey : toDateKey(days.find((day) => day.getMonth() === cursor.getMonth()) ?? days[0]);
+  });
+  const selectedDay = days.find((day) => toDateKey(day) === selectedKey) ?? days.find((day) => day.getMonth() === cursor.getMonth()) ?? days[0];
+
   return (
-    <Card>
-      <div className="mb-3 grid grid-cols-7 gap-2 text-center text-sm font-black text-clay">
-        {weekDays.map((day) => (
-          <span key={day}>{day}</span>
-        ))}
-      </div>
-      <div className="grid grid-cols-7 gap-2">
-        {days.map((day) => {
-          const dayEvents = eventsForDay(events, day);
-          const muted = day.getMonth() !== cursor.getMonth();
-          return (
-            <div key={toDateKey(day)} className={`min-h-32 rounded-3xl border p-2 ${muted ? "border-clay/5 bg-white/35 text-clay/70" : "border-white/70 bg-white/60 text-ink"}`}>
-              <p className="mb-2 text-sm font-black">{day.getDate()}</p>
-              <div className="space-y-1">
-                {dayEvents.slice(0, 3).map((event) => (
-                  <EventPill key={event.id} event={event} clients={clients} />
-                ))}
-                {dayEvents.length > 3 ? <p className="text-xs font-black text-clay">+{dayEvents.length - 3} עוד</p> : null}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </Card>
+    <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
+      <Card>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3 text-xs font-black text-clay">
+            <LegendDot className="bg-coral" label="אירוע" />
+            <LegendDot className="bg-mint" label="סטודיו / איסוף" />
+            <span className="rounded-full bg-white/60 px-3 py-1">מספר = כמה אירועים ביום</span>
+          </div>
+          <p className="text-sm font-black text-clay/80">לחיצה על יום פותחת פירוט</p>
+        </div>
+
+        <div className="mb-3 grid grid-cols-7 gap-1 text-center text-sm font-black text-clay sm:gap-2">
+          {weekDays.map((day) => (
+            <span key={day}>{day}</span>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1 sm:gap-2">
+          {days.map((day) => {
+            const key = toDateKey(day);
+            const dayEvents = eventsForDay(events, day);
+            const muted = day.getMonth() !== cursor.getMonth();
+            const selected = key === toDateKey(selectedDay);
+            const isToday = key === todayKey;
+            const studioCount = dayEvents.filter(isStudioEvent).length;
+            const regularCount = dayEvents.length - studioCount;
+
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setSelectedKey(key)}
+                className={`min-h-[4.4rem] rounded-[1.35rem] border p-2 text-right transition active:scale-[0.98] sm:min-h-[5.6rem] ${
+                  selected
+                    ? "border-coral bg-coral/10 shadow-[inset_0_0_0_1px_rgba(233,120,112,0.25)]"
+                    : muted
+                      ? "border-clay/5 bg-white/25 text-clay/50"
+                      : "border-white/70 bg-white/60 text-ink hover:border-coral/25"
+                }`}
+                aria-label={`${formatFullDate(day)} ${dayEvents.length ? `${dayEvents.length} אירועים` : "ללא אירועים"}`}
+              >
+                <div className="flex items-start justify-between gap-1">
+                  <span className={`grid h-7 w-7 place-items-center rounded-full text-sm font-black ${isToday ? "bg-ink text-paper" : selected ? "bg-coral text-white" : ""}`}>
+                    {day.getDate()}
+                  </span>
+                  {dayEvents.length ? <span className="rounded-full bg-white/80 px-2 py-0.5 font-mono text-xs font-black text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">{dayEvents.length}</span> : null}
+                </div>
+
+                <div className="mt-3 flex min-h-4 flex-wrap items-center gap-1">
+                  {Array.from({ length: Math.min(regularCount, 4) }).map((_, index) => (
+                    <span key={`event-${index}`} className="h-2 w-2 rounded-full bg-coral" />
+                  ))}
+                  {Array.from({ length: Math.min(studioCount, 4) }).map((_, index) => (
+                    <span key={`studio-${index}`} className="h-2 w-2 rounded-full bg-mint ring-1 ring-clay/10" />
+                  ))}
+                  {dayEvents.length > 4 ? <span className="text-[10px] font-black text-clay">+</span> : null}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </Card>
+
+      <DayCard day={selectedDay} events={eventsForDay(events, selectedDay)} clients={clients} />
+    </div>
+  );
+}
+
+function LegendDot({ className, label }: { className: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className={`h-2.5 w-2.5 rounded-full ${className}`} />
+      {label}
+    </span>
   );
 }
 
@@ -172,16 +228,6 @@ function DayCard({
   );
 }
 
-function EventPill({ event, clients }: { event: Event; clients: { id: string; name: string }[] }) {
-  const client = clients.find((item) => item.id === event.clientId);
-  return (
-    <Link href={`/events/${event.id}`} className="block rounded-2xl bg-peach/70 px-2 py-2 text-xs font-black text-ink transition hover:bg-coral hover:text-white">
-      <span className="block truncate">{event.startTime} · {event.title}</span>
-      <span className="block truncate text-[11px] opacity-80">{client?.name || "ללא לקוח"}</span>
-    </Link>
-  );
-}
-
 function getInitialCursor(events: Event[]) {
   const upcoming = [...events].sort((a, b) => a.date.localeCompare(b.date))[0];
   return upcoming ? parseLocalDate(upcoming.date) : new Date();
@@ -222,6 +268,10 @@ function getCalendarTitle(cursor: Date, view: CalendarView) {
 function eventsForDay(events: Event[], day: Date) {
   const key = toDateKey(day);
   return events.filter((event) => event.date === key).sort((a, b) => a.startTime.localeCompare(b.startTime));
+}
+
+function isStudioEvent(event: Event) {
+  return ["completed", "studio_work", "glazing", "firing", "packing", "delivered"].includes(event.status);
 }
 
 function startOfWeek(date: Date) {
