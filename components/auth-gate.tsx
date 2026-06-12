@@ -33,7 +33,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (!checked || !allowed) {
     return (
-      <main className="grid min-h-screen place-items-center bg-cream px-4">
+      <main className="grid min-h-[100dvh] place-items-center bg-cream px-4">
         <div className="studio-card max-w-sm rounded-[28px] p-6 text-center">
           <p className="text-xl font-black text-ink">בודקת התחברות...</p>
           <p className="mt-2 text-sm text-clay">עוד רגע נכנסים למנותו.</p>

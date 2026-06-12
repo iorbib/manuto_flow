@@ -2,8 +2,10 @@
 
 import { FormEvent, Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LockKeyhole, Sparkles } from "lucide-react";
+import { LockKeyhole } from "lucide-react";
 import { signIn, isAuthenticated } from "@/lib/auth";
+
+const manutoLogoUrl = "https://manuto.co.il/wp-content/uploads/2023/04/manuto_logo_pink_black-e1703362069976.png";
 
 export default function LoginPage() {
   return (
@@ -15,7 +17,7 @@ export default function LoginPage() {
 
 function LoginLoading() {
   return (
-    <main className="grid min-h-screen place-items-center bg-cream px-4">
+    <main className="grid min-h-[100dvh] place-items-center bg-cream px-4">
       <div className="studio-card max-w-sm rounded-[28px] p-6 text-center">
         <p className="text-xl font-black text-ink">טוענת כניסה...</p>
       </div>
@@ -55,17 +57,17 @@ function LoginForm() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-[radial-gradient(circle_at_top,_#ffe9df,_#fffaf1_38%,_#f8dcd6_100%)] px-4 py-10">
+    <main className="grid min-h-[100dvh] place-items-center px-4 py-10">
       <section className="w-full max-w-md">
         <div className="mb-6 text-center">
-          <div className="mx-auto grid h-16 w-16 place-items-center rounded-[1.75rem] bg-coral text-white shadow-soft">
-            <Sparkles size={28} />
+          <div className="mx-auto grid h-24 w-24 place-items-center overflow-hidden rounded-[2rem] bg-white/72 p-3 shadow-[0_22px_65px_rgba(122,76,62,0.15),inset_0_1px_0_rgba(255,255,255,0.78)]">
+            <img src={manutoLogoUrl} alt="Manuto" className="h-auto w-full" />
           </div>
           <h1 className="mt-4 text-4xl font-black tracking-normal text-ink">Manuto Flow</h1>
-          <p className="mt-2 text-clay">כניסה לשולחן הסטודיו של מנותו</p>
+          <p className="mt-2 font-bold text-clay/85">כניסה לשולחן הסטודיו של מנותו</p>
         </div>
 
-        <form onSubmit={submitLogin} className="studio-card rounded-[32px] p-6">
+        <form onSubmit={submitLogin} className="studio-card rounded-[2rem] p-6">
           <div className="mb-5 flex items-center gap-3">
             <span className="grid h-11 w-11 place-items-center rounded-2xl bg-mint text-ink">
               <LockKeyhole size={20} />
@@ -105,7 +107,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="mt-6 min-h-12 w-full rounded-full bg-coral px-5 py-3 font-black text-white shadow-soft transition hover:brightness-105 disabled:cursor-wait disabled:opacity-70"
+            className="mt-6 min-h-12 w-full rounded-full bg-coral px-5 py-3 font-black text-white shadow-soft transition hover:bg-[#e97870] active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
           >
             {isSubmitting ? "נכנסת..." : "כניסה"}
           </button>
