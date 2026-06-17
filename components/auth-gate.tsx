@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { isAuthenticated } from "@/lib/auth";
+import { isAuthenticated, signOut } from "@/lib/auth";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -11,8 +11,23 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    function checkAuth() {
-      const authenticated = isAuthenticated();
+    async function checkAuth() {
+      const locallyAuthenticated = isAuthenticated();
+
+      if (!locallyAuthenticated) {
+        setAllowed(false);
+        setChecked(true);
+        router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+        return;
+      }
+
+      const sessionResponse = await fetch("/api/auth/session", { cache: "no-store" }).catch(() => null);
+      const authenticated = Boolean(sessionResponse?.ok);
+
+      if (!authenticated) {
+        signOut();
+      }
+
       setAllowed(authenticated);
       setChecked(true);
 

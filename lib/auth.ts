@@ -1,16 +1,8 @@
 "use client";
 
-const AUTH_STORAGE_KEY = "manuto-flow-auth";
-const AUTH_USER = "doralona";
-const PASSWORD_HASH = "a5455a3ed5b60f87a23e8209a72546f95e4cbc3543fbe54c03d5415e46b26c45";
+import { AUTH_USER } from "./public-auth";
 
-async function sha256(value: string) {
-  const encoded = new TextEncoder().encode(value);
-  const digest = await crypto.subtle.digest("SHA-256", encoded);
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-}
+const AUTH_STORAGE_KEY = "manuto-flow-auth";
 
 export function isAuthenticated() {
   if (typeof window === "undefined") return false;
@@ -25,9 +17,14 @@ export function isAuthenticated() {
 
 export async function signIn(username: string, password: string) {
   const cleanUsername = username.trim().toLowerCase();
-  const passwordHash = await sha256(password);
 
-  if (cleanUsername !== AUTH_USER || passwordHash !== PASSWORD_HASH) {
+  const response = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: cleanUsername, password })
+  });
+
+  if (!response.ok) {
     return false;
   }
 
@@ -39,5 +36,6 @@ export async function signIn(username: string, password: string) {
 export function signOut() {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(AUTH_STORAGE_KEY);
+  fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
   window.dispatchEvent(new Event("manuto-auth-change"));
 }

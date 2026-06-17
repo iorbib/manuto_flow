@@ -20,7 +20,6 @@ import type {
 
 const STORAGE_KEY = "manuto-flow-data-v2";
 const BACKUP_KEY_PREFIX = "manuto-flow-data-backup";
-const REMOTE_STATE_ID = "main";
 type RemoteStudioData =
   | { status: "found"; data: StudioData; updatedAt: string | null }
   | { status: "missing" }
@@ -78,29 +77,80 @@ function backupStudioData(data: StudioData, reason: string) {
 }
 
 async function loadRemoteStudioData(): Promise<RemoteStudioData | null> {
-  if (!supabase) return null;
+  const response = await fetch("/api/studio-state", { cache: "no-store" }).catch((error: Error) => ({
+    ok: false,
+    status: 0,
+    json: async () => ({ error: error.message })
+  }));
 
-  const { data, error } = await supabase.from("studio_state").select("data, updated_at").eq("id", REMOTE_STATE_ID).maybeSingle();
+  const payload = (await response.json().catch(() => null)) as { status?: "found" | "missing"; data?: StudioData; updatedAt?: string | null; error?: string } | null;
+
+  if (!response.ok) {
+    const message = payload?.error ?? `HTTP ${response.status}`;
+    if (response.status === 503) {
+      return loadRemoteStudioDataFromSupabaseFallback();
+    }
+    console.warn("Could not load studio state", message);
+    return { status: "error", error: message };
+  }
+
+  return payload?.status === "found" && payload.data ? { status: "found", data: normalizeData(payload.data), updatedAt: payload.updatedAt ?? null } : { status: "missing" };
+}
+
+async function saveRemoteStudioData(data: StudioData) {
+  const response = await fetch("/api/studio-state", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ data })
+  }).catch((error: Error) => ({
+    ok: false,
+    status: 0,
+    json: async () => ({ error: error.message })
+  }));
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    const message = payload?.error ?? `HTTP ${response.status}`;
+    if (response.status === 503) {
+      return saveRemoteStudioDataToSupabaseFallback(data);
+    }
+    console.warn("Could not save studio state", message);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("manuto-flow-sync-error", message);
+    }
+    return false;
+  }
+
+  if (typeof window !== "undefined") {
+    window.localStorage.removeItem("manuto-flow-sync-error");
+  }
+  return true;
+}
+
+async function loadRemoteStudioDataFromSupabaseFallback(): Promise<RemoteStudioData | null> {
+  if (!supabase) return { status: "error", error: "Server Supabase is not configured" };
+
+  const { data, error } = await supabase.from("studio_state").select("data, updated_at").eq("id", "main").maybeSingle();
 
   if (error) {
-    console.warn("Could not load studio state from Supabase", error.message);
+    console.warn("Could not load studio state from fallback Supabase client", error.message);
     return { status: "error", error: error.message };
   }
 
   return data?.data ? { status: "found", data: normalizeData(data.data as StudioData), updatedAt: data.updated_at ?? null } : { status: "missing" };
 }
 
-async function saveRemoteStudioData(data: StudioData) {
+async function saveRemoteStudioDataToSupabaseFallback(data: StudioData) {
   if (!supabase) return false;
 
   const { error } = await supabase.from("studio_state").upsert({
-    id: REMOTE_STATE_ID,
+    id: "main",
     data,
     updated_at: new Date().toISOString()
   });
 
   if (error) {
-    console.warn("Could not save studio state to Supabase", error.message);
+    console.warn("Could not save studio state through fallback Supabase client", error.message);
     if (typeof window !== "undefined") {
       window.localStorage.setItem("manuto-flow-sync-error", error.message);
     }
@@ -129,11 +179,6 @@ export function useStudioData() {
     currentData.current = nextData;
     currentSerializedData.current = serializedData;
     saveStudioData(nextData);
-
-    if (!supabase) {
-      lastSavedData.current = serializedData;
-      return;
-    }
 
     isSaving.current = true;
     saveRemoteStudioData(nextData).then((saved) => {
@@ -177,18 +222,6 @@ export function useStudioData() {
     let cancelled = false;
 
     async function loadData() {
-      if (!supabase) {
-        const localData = loadStudioData();
-        if (!cancelled) {
-          currentData.current = localData;
-          currentSerializedData.current = JSON.stringify(localData);
-          setData(localData);
-          setSyncMode("local");
-          setReady(true);
-        }
-        return;
-      }
-
       const localData = loadStudioData();
       currentData.current = localData;
       currentSerializedData.current = JSON.stringify(localData);
@@ -238,33 +271,12 @@ export function useStudioData() {
       if (remoteRow?.status === "found") applyRemoteData(remoteRow.data);
     }
 
-    const channel = supabase
-      ?.channel("studio-state-live")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "studio_state", filter: `id=eq.${REMOTE_STATE_ID}` },
-        (payload) => {
-          if (payload.eventType === "DELETE") return;
-
-          const nextData = (payload.new as { data?: StudioData } | null)?.data;
-          if (!nextData) return;
-
-          if (!isSaving.current) {
-            applyRemoteData(nextData);
-          }
-        }
-      )
-      .subscribe();
-
     const pollId = window.setInterval(refreshFromCloud, 5000);
     window.addEventListener("focus", refreshFromCloud);
     document.addEventListener("visibilitychange", refreshFromCloud);
 
     return () => {
       cancelled = true;
-      if (channel) {
-        supabase?.removeChannel(channel);
-      }
       window.clearInterval(pollId);
       window.removeEventListener("focus", refreshFromCloud);
       document.removeEventListener("visibilitychange", refreshFromCloud);

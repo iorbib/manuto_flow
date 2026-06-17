@@ -2,9 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { ActionButton, Card, PageHeader } from "@/components/ui";
-import { seedData } from "@/lib/seedData";
 import { useStudioData } from "@/lib/storage";
-import { supabase } from "@/lib/supabase";
 import type { BusinessSettings } from "@/lib/types";
 
 export default function SettingsPage() {
@@ -25,35 +23,33 @@ export default function SettingsPage() {
   }
 
   async function testCloudWrite() {
-    if (!supabase) {
-      setCloudStatus("Supabase לא מחובר בפרונט. חסרים משתני סביבה בוורסל.");
+    setCloudStatus("בודקת קריאה דרך השרת...");
+
+    const readResponse = await fetch("/api/studio-state", { cache: "no-store" }).catch(() => null);
+    if (!readResponse?.ok) {
+      const payload = (await readResponse?.json().catch(() => null)) as { error?: string } | null;
+      setCloudStatus(`קריאה נכשלה: ${payload?.error ?? "אין תגובה מהשרת"}`);
       return;
     }
 
-    setCloudStatus("בודקת קריאה וכתיבה לענן...");
+    setCloudStatus("בודקת כתיבה דרך השרת...");
 
-    const { data: currentRow, error: readError } = await supabase.from("studio_state").select("data").eq("id", "main").maybeSingle();
+    const writeResponse = await fetch("/api/studio-state", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data })
+    }).catch(() => null);
 
-    if (readError) {
-      setCloudStatus(`קריאה נכשלה: ${readError.message}`);
-      return;
-    }
-
-    const currentData = currentRow?.data ?? data ?? seedData;
-    const { error: writeError } = await supabase
-      .from("studio_state")
-      .upsert({ id: "main", data: currentData, updated_at: new Date().toISOString() }, { onConflict: "id" })
-      .select("updated_at")
-      .single();
-
-    if (writeError) {
-      setCloudStatus(`כתיבה נכשלה: ${writeError.message}`);
-      window.localStorage.setItem("manuto-flow-sync-error", writeError.message);
+    if (!writeResponse?.ok) {
+      const payload = (await writeResponse?.json().catch(() => null)) as { error?: string } | null;
+      const message = payload?.error ?? "אין תגובה מהשרת";
+      setCloudStatus(`כתיבה נכשלה: ${message}`);
+      window.localStorage.setItem("manuto-flow-sync-error", message);
       return;
     }
 
     window.localStorage.removeItem("manuto-flow-sync-error");
-    setCloudStatus("הכתיבה לענן הצליחה. אם אירוע עדיין נעלם, הבעיה היא בלוגיקת שמירה ולא בהרשאות Supabase.");
+    setCloudStatus("הקריאה והכתיבה דרך השרת הצליחו.");
   }
 
   return (
