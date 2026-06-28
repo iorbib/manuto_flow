@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, ArrowLeft, CalendarClock, ClipboardCheck, Heart, PackageSearch, Paintbrush } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CalendarClock, ClipboardCheck, Heart, PackageSearch, Paintbrush, ReceiptText } from "lucide-react";
 import { ActionButton, InlineLink } from "@/components/ui";
-import { formatCurrency } from "@/lib/pricing";
+import { calculateEventPricing, formatCurrency } from "@/lib/pricing";
 import { dailySupportMessages } from "@/lib/seedData";
 import { useStudioData } from "@/lib/storage";
-import type { Event } from "@/lib/types";
+import type { Employee, EmployeeWorkLog, Event } from "@/lib/types";
 
 const manutoLogoUrl = "https://manuto.co.il/wp-content/uploads/2023/04/manuto_logo_pink_black-e1703362069976.png";
 const lowStockThreshold = 10;
@@ -14,6 +14,7 @@ const lowStockThreshold = 10;
 export default function DashboardPage() {
   const { data } = useStudioData();
   const today = new Date().toISOString().slice(0, 10);
+  const currentMonth = getLocalMonthKey(new Date());
   const nextEvent =
     data.events
       .filter((event) => event.date >= today)
@@ -35,6 +36,7 @@ export default function DashboardPage() {
     .filter((item) => item.availableQuantity < lowStockThreshold)
     .sort((first, second) => first.availableQuantity - second.availableQuantity);
   const studioEvents = data.events.filter((event) => ["completed", "studio_work", "glazing", "firing", "packing"].includes(event.status));
+  const monthlyFinance = calculateMonthlyFinance(data.events, data.employeeWorkLogs ?? [], data.employees, currentMonth, data.businessSettings.vatRate);
   const supportMessages = [...dailySupportMessages, ...(data.dailySupportMessages ?? [])].filter(Boolean);
   const dailySupportMessage = supportMessages[getDayOfYear(new Date()) % supportMessages.length] ?? "בואי נתחיל בדבר הבא שעל השולחן.";
 
@@ -98,6 +100,27 @@ export default function DashboardPage() {
           </aside>
         </div>
       </section>
+
+      <WorkPanel icon={<ReceiptText size={20} />} title={`החודש בכסף · ${formatMonthLabel(currentMonth)}`} href="/events" action={<ActionButton tone="quiet">אירועים</ActionButton>} tone="bg-mint/35">
+        {monthlyFinance.eventCount ? (
+          <div className="space-y-5">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <MoneyTile label="כולל מע״מ" value={monthlyFinance.revenueIncVat} tone="bg-white/70" />
+              <MoneyTile label="לפני מע״מ" value={monthlyFinance.revenueExVat} tone="bg-white/70" />
+              <MoneyTile label="כלים" value={monthlyFinance.ceramicCost} tone="bg-peach/60" />
+              <MoneyTile label="שעות עבודה" value={monthlyFinance.employeeCost} tone="bg-blush/55" />
+              <MoneyTile label="נשאר לפני מסים" value={monthlyFinance.grossProfit} tone={monthlyFinance.grossProfit >= 0 ? "bg-coral/80" : "bg-red-100"} />
+            </div>
+            <div className="grid gap-3 text-sm font-black text-clay sm:grid-cols-3">
+              <FinanceNote label="אירועים בחישוב" value={`${monthlyFinance.eventCount}`} />
+              <FinanceNote label="שעות מתוכננות" value={`${formatNumber(monthlyFinance.plannedEmployeeHours)} שעות`} />
+              <FinanceNote label="שעות בפועל שנרשמו" value={`${formatNumber(monthlyFinance.loggedEmployeeHours)} שעות · ${formatCurrency(monthlyFinance.loggedEmployeeCost)}`} />
+            </div>
+          </div>
+        ) : (
+          <p className="font-bold text-clay">אין עדיין אירועים החודש שאפשר לסכם מהם הכנסות והוצאות.</p>
+        )}
+      </WorkPanel>
 
       <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr_1fr]">
         <WorkPanel icon={<Heart size={20} />} title="הפתק של היום" tone="bg-blush/35">
@@ -213,10 +236,42 @@ function DarkChip({ label, value }: { label: string; value: string }) {
   );
 }
 
+function MoneyTile({ label, value, tone }: { label: string; value: number; tone: string }) {
+  return (
+    <div className={`rounded-[1.4rem] border border-clay/10 ${tone} p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]`}>
+      <p className="text-xs font-black text-clay/75">{label}</p>
+      <p className="mt-2 whitespace-nowrap font-mono text-2xl font-black text-ink">{formatCurrency(value)}</p>
+    </div>
+  );
+}
+
+function FinanceNote({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-white/55 px-4 py-3">
+      <span className="text-clay/70">{label}</span>
+      <span className="mx-2 text-ink">{value}</span>
+    </div>
+  );
+}
+
 function getDayOfYear(date: Date) {
   const start = new Date(date.getFullYear(), 0, 0);
   const diff = date.getTime() - start.getTime();
   return Math.floor(diff / 86400000);
+}
+
+function getLocalMonthKey(date: Date) {
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  return `${date.getFullYear()}-${month}`;
+}
+
+function formatMonthLabel(monthKey: string) {
+  const [year, month] = monthKey.split("-");
+  return `${month}/${year}`;
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat("he-IL", { maximumFractionDigits: 1 }).format(value);
 }
 
 function getReservedQuantity(events: Event[], productId: string, today: string) {
@@ -225,4 +280,45 @@ function getReservedQuantity(events: Event[], productId: string, today: string) 
     .flatMap((event) => event.items ?? [])
     .filter((item) => item.productId === productId)
     .reduce((sum, item) => sum + item.quantity, 0);
+}
+
+function calculateMonthlyFinance(events: Event[], workLogs: EmployeeWorkLog[], employees: Employee[], monthKey: string, vatRate: number) {
+  const billableEvents = events.filter((event) => event.date.startsWith(monthKey) && !["cancelled"].includes(event.status));
+
+  const eventTotals = billableEvents.reduce(
+    (totals, event) => {
+      const pricing = calculateEventPricing(event, employees, vatRate);
+      const plannedHours = event.assignments.reduce((sum, assignment) => sum + assignment.eventHours, 0);
+
+      return {
+        revenueIncVat: totals.revenueIncVat + pricing.revenueIncVat,
+        revenueExVat: totals.revenueExVat + pricing.revenueExVat,
+        ceramicCost: totals.ceramicCost + pricing.ceramicCost,
+        employeeCost: totals.employeeCost + pricing.employeeCost,
+        directCosts: totals.directCosts + pricing.directCosts,
+        grossProfit: totals.grossProfit + pricing.grossProfit,
+        plannedEmployeeHours: totals.plannedEmployeeHours + plannedHours
+      };
+    },
+    {
+      revenueIncVat: 0,
+      revenueExVat: 0,
+      ceramicCost: 0,
+      employeeCost: 0,
+      directCosts: 0,
+      grossProfit: 0,
+      plannedEmployeeHours: 0
+    }
+  );
+
+  const loggedWork = workLogs.filter((log) => log.date.startsWith(monthKey));
+  const loggedEmployeeHours = loggedWork.reduce((sum, log) => sum + log.hours, 0);
+  const loggedEmployeeCost = loggedWork.reduce((sum, log) => sum + log.hours * log.hourlyRate, 0);
+
+  return {
+    ...eventTotals,
+    eventCount: billableEvents.length,
+    loggedEmployeeHours,
+    loggedEmployeeCost
+  };
 }
